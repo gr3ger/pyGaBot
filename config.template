@@ -1,3 +1,5 @@
 [DEFAULT]
 Token = TOKEN_HERE
 CallCharacter = !
+
+[OPTIONS]
