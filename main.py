@@ -1,6 +1,9 @@
+import threading
 import urllib.request
 import http.client
 import json
+from time import sleep
+
 from flask import Flask, url_for
 from flask_websub.subscriber import Subscriber, SQLite3TempSubscriberStorage, SQLite3SubscriberStorage, discover
 from os.path import exists
@@ -14,7 +17,7 @@ if not exists("config.ini"):
 
 # PubSub stuff
 app = Flask(__name__)
-app.config['SERVER_NAME'] = 'https://api.twitch.tv/helix/webhooks/hub'
+app.config['SERVER_NAME'] = 'localhost:8081'
 subscriber = Subscriber(SQLite3SubscriberStorage('client_data.sqlite3'),
                         SQLite3TempSubscriberStorage('client_data.sqlite3'))
 app.register_blueprint(subscriber.build_blueprint(url_prefix='/callbacks'))
@@ -171,12 +174,25 @@ async def on_ready():
     print('We have logged in as {0.user}'.format(bot))
 
 
+def start_bot():
+    bot.run(TOKEN)
+
+
+def start_pubsub():
+    app.run(host='0.0.0.0', port=8081)
+
+
 print("starting bot")
-bot.run(TOKEN)
+threading.Thread(target=start_bot).start()
 print("starting pubsub")
-app.run(host='0.0.0.0', port=8081)
+threading.Thread(target=start_pubsub).start()
+
+sleep(3.0)
 if read_option("TwitchIntegrationEnabled", "False") == "True":
     print("Subscribing to channel status")
-    subscriber.subscribe(**discover('https://api.twitch.tv/helix/streams?user_id=' + read_option("twitchchannelid", 0)))
+    subscriber.subscribe(topic_url="https://api.twitch.tv/helix/streams?user_id=" + read_option("twitchchannelid", 0),
+                         hub_url="https://api.twitch.tv/helix/webhooks/hub", secret=TWITCH_CLIENT_SECRET,
+                         request_opts={'Client-ID': TWITCH_CLIENT_ID,
+                                       'Content-type': 'application/json'})
 else:
     print("Didn't subscribe")
