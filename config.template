@@ -1,5 +1,8 @@
 [DEFAULT]
 Token = TOKEN_HERE
 CallCharacter = !
+TwitchClientID = CLIENT_ID_HERE
+TwitchClientSecret = CLIENT_SECRET_HERE
 
 [OPTIONS]
+TwitchIntegrationEnabled = False
