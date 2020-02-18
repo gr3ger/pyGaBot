@@ -124,7 +124,7 @@ async def makepoll(ctx, *args):
     votes = ""
 
     embed = discord.Embed(title="*created by {creator_name}* - Poll is active, {hours_left} hours left.".format(
-        creator_name=ctx.message.author.name, hours_left=args[0]))
+        creator_name=ctx.message.author.name, hours_left=args[0]), color=0xff3333)
     embed.set_author(name="{poll_name} - Poll number #{poll_number}".format(poll_name=args[1], poll_number=""),
                      icon_url=ctx.message.author.avatar_url)
     embed.set_thumbnail(url=ctx.message.guild.icon_url)
