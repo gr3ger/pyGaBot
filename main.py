@@ -135,8 +135,8 @@ async def makepoll(ctx, *args):
                                                                                  movie_title=poll.options[x].name,
                                                                                  user=poll.options[x].author),
                         value="Votes: **[{votes}]**".format(votes=votes), inline=False)
-    await ctx.send(embed=embed)
-
+    response = await ctx.send(embed=embed)
+    poll.message_id = response.id
 
 @makepoll.error
 async def makepoll_error(ctx, error):
