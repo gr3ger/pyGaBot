@@ -1,0 +1,22 @@
+class Poll:
+    def __init__(self, message_id=0, name="", endtime=""):
+        self.message_id = message_id
+        self.name = name
+        self.endtime = endtime
+        self.options = [Option() for _ in range(10)]
+
+    def add_option(self, author, author_id, movie):
+        for option in self.options:
+            if option.name == "":
+                option.name = movie
+                option.author = author
+                option.author_id = author_id
+                break
+
+
+class Option:
+    def __init__(self, name="", author="", author_id=0):
+        self.author = author
+        self.author_id = author_id
+        self.name = name
+        self.votes = []
