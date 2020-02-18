@@ -1,26 +1,15 @@
-import threading
-import urllib.request
+import configparser
 import http.client
 import json
-from time import sleep
-
-from flask import Flask, url_for
-from flask_websub.subscriber import Subscriber, SQLite3TempSubscriberStorage, SQLite3SubscriberStorage, discover
+import urllib.request
 from os.path import exists
+
 import discord
 from discord.ext import commands
-import configparser
 
 if not exists("config.ini"):
     print("Could not find config.ini")
     exit()
-
-# PubSub stuff
-app = Flask(__name__)
-app.config['SERVER_NAME'] = 'localhost:8081'
-subscriber = Subscriber(SQLite3SubscriberStorage('client_data.sqlite3'),
-                        SQLite3TempSubscriberStorage('client_data.sqlite3'))
-app.register_blueprint(subscriber.build_blueprint(url_prefix='/callbacks'))
 
 # Config file parser
 config = configparser.ConfigParser()
@@ -34,48 +23,6 @@ TWITCH_CLIENT_SECRET = config['DEFAULT']['TwitchClientSecret']
 bot = commands.Bot(command_prefix=CALL_CHARACTER)
 callback = 'http://' + urllib.request.urlopen('https://ident.me').read().decode('utf8') + ':8000/'
 
-
-@subscriber.add_success_handler
-def on_success(topic_url, callback_id, mode):
-    print("SUCCESS!", topic_url, callback_id, mode)
-
-
-@subscriber.add_error_handler
-def on_error(topic_url, callback_id, msg):
-    print("ERROR!", topic_url, callback_id, msg)
-
-
-@subscriber.add_listener
-def on_topic_change(topic_url, callback_id, body):
-    print('TOPIC CHANGED!', topic_url, callback_id, body)
-
-
-@app.route('/subscribe')
-def subscribe_route():
-    id = subscriber.subscribe(**discover(callback))
-    return 'Subscribed. ' + url_for('renew_route', id=id, _external=True)
-
-
-@app.route('/renew/<id>')
-def renew_route(id):
-    new_id = subscriber.renew(id)
-    return 'Renewed: ' + url_for('unsubscribe_route', id=new_id, _external=True)
-
-
-@app.route('/unsubscribe/<id>')
-def unsubscribe_route(id):
-    subscriber.unsubscribe(id)
-    return 'Unsubscribed: ' + url_for('cleanup_and_renew_all', _external=True)
-
-
-@app.route('/cleanup_and_renew_all')
-def cleanup_and_renew_all():
-    subscriber.cleanup()
-    # 9 days, to make sure every single subscription is renewed
-    subscriber.renew_close_to_expiration(24 * 60 * 60 * 9)
-    return 'Done!'
-
-
 def write_option(key, value):
     config['OPTIONS'][key] = value
     with open('config.ini', 'w') as configfile:
@@ -86,6 +33,7 @@ def read_option(key, default):
     try:
         return config["OPTIONS"][key]
     except KeyError:
+        print("Key [{}] not found, using value {} instead.".format(key, default))
         return default
 
 
@@ -174,25 +122,10 @@ async def on_ready():
     print('We have logged in as {0.user}'.format(bot))
 
 
-def start_bot():
-    bot.run(TOKEN)
-
-
-def start_pubsub():
-    app.run(host='0.0.0.0', port=8081)
-
-
 print("starting bot")
-threading.Thread(target=start_bot).start()
-print("starting pubsub")
-threading.Thread(target=start_pubsub).start()
+bot.run(TOKEN)
 
-sleep(3.0)
 if read_option("TwitchIntegrationEnabled", "False") == "True":
     print("Subscribing to channel status")
-    subscriber.subscribe(topic_url="https://api.twitch.tv/helix/streams?user_id=" + read_option("twitchchannelid", 0),
-                         hub_url="https://api.twitch.tv/helix/webhooks/hub", secret=TWITCH_CLIENT_SECRET,
-                         request_opts={'Client-ID': TWITCH_CLIENT_ID,
-                                       'Content-type': 'application/json'})
 else:
     print("Didn't subscribe")
