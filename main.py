@@ -1,6 +1,8 @@
 import configparser
 import http.client
 import json
+import sys
+import threading
 import time
 import urllib.request
 from datetime import datetime
@@ -8,6 +10,7 @@ from os.path import exists
 
 import discord
 from discord.ext import commands
+from flask import Flask, request, Response
 from tinydb import TinyDB
 
 from poll import Poll, Option
@@ -28,8 +31,13 @@ CALL_CHARACTER = config['DEFAULT']['CallCharacter']
 TWITCH_CLIENT_ID = config['DEFAULT']['TwitchClientID']
 TWITCH_CLIENT_SECRET = config['DEFAULT']['TwitchClientSecret']
 bot = commands.Bot(command_prefix=CALL_CHARACTER)
-callback = 'http://' + urllib.request.urlopen('https://ident.me').read().decode('utf8') + ':8000/'
+lease_seconds = 60 * 60 * 24 * 10
+callback = 'http://' + urllib.request.urlopen('https://ident.me').read().decode('utf8') + ':5000/'
 poll_emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
+
+
+def get_external_ip():
+    return urllib.request.urlopen('https://ident.me').read().decode('utf8')
 
 
 def json_converter(o):
@@ -99,6 +107,7 @@ async def enabletwitch(ctx, arg):
             await ctx.send(
                 "Successfully set the announcement channel to: {}, I will post here when {} comes online.".format(
                     ctx.message.channel.name, arg))
+            subscribe_to_twitch()
         except IndexError:
             await ctx.send("Could not find user {}".format(arg))
     else:
@@ -174,10 +183,81 @@ async def on_ready():
     print('We have logged in as {0.user}'.format(bot))
 
 
-if read_option("TwitchIntegrationEnabled", "False") == "True":
-    print("Subscribing to channel status")
-else:
-    print("Didn't subscribe")
+def subscribe_to_twitch():
+    print("callback to: " + callback)
+    headers = {'Client-ID': TWITCH_CLIENT_ID,
+               'Content-type': 'application/json'}
+
+    topic = 'https://api.twitch.tv/helix/streams?user_id=' + read_option("twitchchannelid", 0)
+    foo = {'hub.mode': 'subscribe',
+           'hub.topic': topic,
+           'hub.callback': callback,
+           'hub.lease_seconds': lease_seconds,
+           'hub.secret': TWITCH_CLIENT_SECRET
+           }
+
+    json_foo = json.dumps(foo)
+    connection.request('POST', '/helix/webhooks/hub', body=json_foo, headers=headers)
+    response = connection.getresponse()
+    print(response.status, response.reason)
+    print(response.read().decode())
+
+
+async def send_message_to_channel(string, channel):
+    print("Sending announcement to channel")
+    channel = bot.get_channel(channel)
+    await channel.send(string)
+
+
+# Start webhook
+app = Flask(__name__)
+
+
+@app.route('/', methods=['POST', 'GET'])
+def index():
+    if request.method == 'GET':
+        print(request.args, file=sys.stderr)
+
+        req_data = request.get_json()
+        result_json = json.dumps(req_data)
+        print(json.dumps(req_data), file=sys.stderr)
+
+        if "hub.topic" in request.args:
+            print("Responding to challenge", file=sys.stderr)
+            response = Response()
+            response.status_code = 200
+            response.content_type = 'text/plain'
+            response.set_data(request.args['hub.challenge'])
+            return response
+        else:
+            return "hello!"
+    if request.method == 'POST':
+        req_data = request.get_json()
+        result_json = json.dumps(req_data)
+        print("RESPONSE THROUGH WEBHOOK!", file=sys.stderr)
+        print(result_json, file=sys.stderr)
+        send_message_to_channel(
+            "{name} is {status}".format(name=result_json['data'][0]['display_name'], status=result_json['data'][0]['type']),
+            read_option("announcementchannel", 0))
+        response = Response()
+        response.status_code = 200
+        return response
+
+
+def runWebServer():
+    time.sleep(5.0)
+
+    if read_option("TwitchIntegrationEnabled", "False") == "True":
+        print("Subscribing to channel status")
+        subscribe_to_twitch()
+    else:
+        print("Didn't subscribe")
+
+    app.run(host='0.0.0.0', port=5000, threaded=True, debug=False)  # will listen on port 5000
+
+
+print("Start webhooks")
+threading.Thread(target=runWebServer).start()
 
 print("starting bot")
 bot.run(TOKEN)
