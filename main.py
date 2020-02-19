@@ -26,13 +26,14 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 
 connection = http.client.HTTPSConnection('api.twitch.tv')
-TOKEN = config['DEFAULT']['Token']
+DISCORD_TOKEN = config['DEFAULT']['DiscordToken']
 CALL_CHARACTER = config['DEFAULT']['CallCharacter']
 TWITCH_CLIENT_ID = config['DEFAULT']['TwitchClientID']
 TWITCH_CLIENT_SECRET = config['DEFAULT']['TwitchClientSecret']
+WEBHOOK_PORT = config['DEFAULT']['WebhookPort']
 bot = commands.Bot(command_prefix=CALL_CHARACTER)
 lease_seconds = 60 * 60 * 24 * 10
-callback = 'http://' + urllib.request.urlopen('https://ident.me').read().decode('utf8') + ':5000/'
+callback = 'http://' + urllib.request.urlopen('https://ident.me').read().decode('utf8') + ':' + WEBHOOK_PORT + '/'
 poll_emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
 
 
@@ -237,7 +238,8 @@ def index():
         print("RESPONSE THROUGH WEBHOOK!", file=sys.stderr)
         print(result_json, file=sys.stderr)
         send_message_to_channel(
-            "{name} is {status}".format(name=result_json['data'][0]['display_name'], status=result_json['data'][0]['type']),
+            "{name} is {status}".format(name=result_json['data'][0]['display_name'],
+                                        status=result_json['data'][0]['type']),
             read_option("announcementchannel", 0))
         response = Response()
         response.status_code = 200
@@ -253,11 +255,11 @@ def runWebServer():
     else:
         print("Didn't subscribe")
 
-    app.run(host='0.0.0.0', port=5000, threaded=True, debug=False)  # will listen on port 5000
+    app.run(host='0.0.0.0', port=int(WEBHOOK_PORT), threaded=True, debug=False)
 
 
 print("Start webhooks")
 threading.Thread(target=runWebServer).start()
 
 print("starting bot")
-bot.run(TOKEN)
+bot.run(DISCORD_TOKEN)
