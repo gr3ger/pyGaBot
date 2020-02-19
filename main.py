@@ -1,8 +1,9 @@
 import configparser
 import http.client
 import json
+import time
 import urllib.request
-from datetime import datetime, timedelta
+from datetime import datetime
 from os.path import exists
 
 import discord
@@ -116,13 +117,14 @@ async def enabletwitch_error(ctx, error):
 @bot.command()
 @commands.has_any_role("Mods", "Admin")
 async def makepoll(ctx, *args):
-    time = datetime.now() + timedelta(hours=int(args[0]))
-    poll = Poll(name=args[1], endtime=time)
-    poll.add_option(ctx.message.author.name, ctx.message.author.id, " ".join(args[2:]))
+    endtime = time.time() + (int(args[0]) * 60 * 60)
+    print(datetime.fromtimestamp(endtime).__str__())
+
+    poll = Poll(name=args[1], endtime=endtime)
+    poll.add_option(ctx.message.author.name, ctx.message.author.id,
+                    " ".join(args[2:]))
     print(json.dumps(poll, default=json_converter))
-
     votes = ""
-
     embed = discord.Embed(title="*created by {creator_name}* - Poll is active, {hours_left} hours left.".format(
         creator_name=ctx.message.author.name, hours_left=args[0]), color=0xff3333)
     embed.set_author(name="{poll_name} - Poll number #{poll_number}".format(poll_name=args[1], poll_number=""),
@@ -138,12 +140,14 @@ async def makepoll(ctx, *args):
     response = await ctx.send(embed=embed)
     poll.message_id = response.id
 
+
 @makepoll.error
 async def makepoll_error(ctx, error):
     if isinstance(error, commands.UserInputError):
         poll = Poll()
-        await ctx.send('Usage: `{}makepoll <hours> <"Poll title"> <first movie option>`'
-                       .format(CALL_CHARACTER))
+        await ctx.send('Usage: `{call_character}makepoll <hours> <"Poll title"> <first movie option>`'
+                       '\nExample: `{call_character}makepoll 48 "Gabber Movie Poll" Yeeting with Wolves`'
+                       .format(call_character=CALL_CHARACTER))
     else:
         await ctx.send(str(error))
 
