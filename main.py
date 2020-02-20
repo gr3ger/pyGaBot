@@ -97,7 +97,7 @@ async def disabletwitch(ctx):
 @bot.command()
 @commands.has_any_role("Mods", "Admin")
 async def enabletwitch(ctx, arg):
-    print(ctx.message.channel.__repr__)
+    print(ctx.message.channel.id.__str__)
     if isinstance(ctx.message.channel, discord.TextChannel):
         user_json = get_twitch_user_by_name(arg)
         print(user_json)
@@ -176,12 +176,7 @@ async def forceaddoption(ctx):
 @bot.command()
 @commands.has_any_role("Mods", "Admin")
 async def removeoption(ctx):
-    await ctx.send("forceaddoption: Not implemented yet")
-
-
-@bot.event
-async def on_ready():
-    print('We have logged in as {0.user}'.format(bot))
+    await ctx.send("removeoption: Not implemented yet")
 
 
 def subscribe_to_twitch():
@@ -204,8 +199,8 @@ def subscribe_to_twitch():
     print(response.read().decode())
 
 
-async def send_message_to_channel(string, channel):
-    print("Sending announcement to channel")
+async def send_message_to_channel(string, channel: int):
+    print("Sending announcement to channel {}".format(channel))
     channel = bot.get_channel(channel)
     await channel.send(string)
 
@@ -220,7 +215,6 @@ def index():
         print(request.args, file=sys.stderr)
 
         req_data = request.get_json()
-        result_json = json.dumps(req_data)
         print(json.dumps(req_data), file=sys.stderr)
 
         if "hub.topic" in request.args:
@@ -234,20 +228,22 @@ def index():
             return "hello!"
     if request.method == 'POST':
         req_data = request.get_json()
-        result_json = json.dumps(req_data)
         print("RESPONSE THROUGH WEBHOOK!", file=sys.stderr)
-        print(result_json, file=sys.stderr)
+        print(json.dumps(req_data), file=sys.stderr)
         send_message_to_channel(
-            "{name} is {status}".format(name=result_json['data'][0]['display_name'],
-                                        status=result_json['data'][0]['type']),
-            read_option("announcementchannel", 0))
+            "{name} is **{status}**\nGame id: **{game_id}**\nTitle: **{title}**".format(
+                name=req_data['data'][0]['user_name'],
+                status=req_data['data'][0]['type'],
+                game_id=req_data['data'][0]['game_id'],
+                title=req_data['data'][0]['title']),
+            int(read_option("announcementchannel", 0)))
         response = Response()
         response.status_code = 200
         return response
 
 
 def runStartupSubscription():
-    time.sleep(13.0)
+    time.sleep(5.0)
     if read_option("TwitchIntegrationEnabled", "False") == "True":
         print("Subscribing to channel status")
         subscribe_to_twitch()
@@ -256,13 +252,16 @@ def runStartupSubscription():
 
 
 def runWebServer():
-    time.sleep(10.0)
     print("Start webserver")
     app.run(host='0.0.0.0', port=int(WEBHOOK_PORT), threaded=True, debug=False)
 
 
-threading.Thread(target=runWebServer).start()
-threading.Thread(target=runStartupSubscription).start()
+@bot.event
+async def on_ready():
+    print('We have logged in as {0.user}'.format(bot))
+    threading.Thread(target=runWebServer).start()
+    threading.Thread(target=runStartupSubscription).start()
+
 
 print("starting bot")
 bot.run(DISCORD_TOKEN)
