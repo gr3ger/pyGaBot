@@ -228,6 +228,11 @@ def index():
             return "hello!"
     if request.method == 'POST':
         req_data = request.get_json()
+
+        if len(req_data['data']) == 0:
+            print("Empty data POST, ignoring", file=sys.stderr)
+            return Response(status=200)
+
         print("RESPONSE THROUGH WEBHOOK!", file=sys.stderr)
         print(json.dumps(req_data), file=sys.stderr)
         send_message_to_channel(
