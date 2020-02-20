@@ -246,20 +246,23 @@ def index():
         return response
 
 
-def runWebServer():
-    time.sleep(5.0)
-
+def runStartupSubscription():
+    time.sleep(13.0)
     if read_option("TwitchIntegrationEnabled", "False") == "True":
         print("Subscribing to channel status")
         subscribe_to_twitch()
     else:
         print("Didn't subscribe")
 
+
+def runWebServer():
+    time.sleep(10.0)
+    print("Start webserver")
     app.run(host='0.0.0.0', port=int(WEBHOOK_PORT), threaded=True, debug=False)
 
 
-print("Start webhooks")
 threading.Thread(target=runWebServer).start()
+threading.Thread(target=runStartupSubscription).start()
 
 print("starting bot")
 bot.run(DISCORD_TOKEN)
