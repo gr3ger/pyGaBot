@@ -1,3 +1,4 @@
+import asyncio
 import configparser
 import http.client
 import json
@@ -14,6 +15,11 @@ from flask import Flask, request, Response
 from tinydb import TinyDB
 
 from poll import Poll, Option
+
+if sys.version_info < (3, 7):
+    print("You are using Python version {major}.{minor}.{micro}, you need at least Python 3.7".format(
+        major=sys.version_info.major, minor=sys.version_info.minor, micro=sys.version_info.micro))
+    exit()
 
 if not exists("config.ini"):
     print("Could not find config.ini")
@@ -235,13 +241,13 @@ def index():
             print("Empty data POST, ignoring", file=sys.stderr)
             return Response(status=200)
 
-        send_message_to_channel(
-            "{name} is **{status}**\nGame id: **{game_id}**\nTitle: **{title}**".format(
-                name=req_data['data'][0]['user_name'],
-                status=req_data['data'][0]['type'],
-                game_id=req_data['data'][0]['game_id'],
-                title=req_data['data'][0]['title']),
-            int(read_option("announcementchannel", 0)))
+        asyncio.run(
+            send_message_to_channel(
+                "{name} is **{status}**\nGame id: **{game_id}**\nTitle: **{title}**".format(
+                    name=req_data['data'][0]['user_name'],
+                    status=req_data['data'][0]['type'],
+                    game_id=req_data['data'][0]['game_id'],
+                    title=req_data['data'][0]['title']), int(read_option("announcementchannel", 0))))
         response = Response()
         response.status_code = 200
         return response
