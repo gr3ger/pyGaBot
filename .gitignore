@@ -1,4 +1,4 @@
 config.ini
 .idea/
 /client_data.sqlite3
-/polls.json
+/polls.bin

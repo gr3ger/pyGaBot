@@ -2,6 +2,8 @@ import asyncio
 import configparser
 import http.client
 import json
+import os
+import pickle
 import sys
 import threading
 import time
@@ -12,7 +14,6 @@ from os.path import exists
 import discord
 from discord.ext import commands
 from flask import Flask, request, Response
-from tinydb import TinyDB
 
 from poll import Poll, Option
 
@@ -25,7 +26,6 @@ if not exists("config.ini"):
     print("Could not find config.ini")
     exit()
 
-db = TinyDB('polls.json')
 
 # Config file parser
 config = configparser.ConfigParser()
@@ -41,6 +41,11 @@ bot = commands.Bot(command_prefix=CALL_CHARACTER)
 lease_seconds = 60 * 60 * 24 * 10
 callback = 'http://' + urllib.request.urlopen('https://ident.me').read().decode('utf8') + ':' + WEBHOOK_PORT + '/'
 poll_emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
+
+polls = []
+
+if os.path.isfile('polls.bin'):
+    polls = pickle.load(open("polls.bin", "rb"))
 
 
 def get_external_ip():
@@ -89,8 +94,9 @@ def get_twitch_user_by_name(usernames):
 
 
 @bot.command()
-async def hello(ctx):
-    await ctx.send("Hello {}!".format(ctx.message.author.name))
+async def test(ctx):
+    print(json.dumps(polls, default=json_converter))
+    # await ctx.send("Hello {}!".format(ctx.message.author.name))
 
 
 @bot.command()
@@ -140,11 +146,15 @@ async def makepoll(ctx, *args):
     poll.add_option(ctx.message.author.name, ctx.message.author.id,
                     " ".join(args[2:]))
     print(json.dumps(poll, default=json_converter))
+
+    polls.append(poll)
+
     votes = ""
     embed = discord.Embed(title="*created by {creator_name}* - Poll is active, {hours_left} hours left.".format(
         creator_name=ctx.message.author.name, hours_left=args[0]), color=0xff3333)
-    embed.set_author(name="{poll_name} - Poll number #{poll_number}".format(poll_name=args[1], poll_number=""),
-                     icon_url=ctx.message.author.avatar_url)
+    embed.set_author(
+        name="{poll_name} - Poll number #{poll_number}".format(poll_name=args[1], poll_number=str(len(polls))),
+        icon_url=ctx.message.author.avatar_url)
     embed.set_thumbnail(url=ctx.message.guild.icon_url)
     for x in range(0, 9):
         if poll.options[x].name == "":
@@ -155,6 +165,7 @@ async def makepoll(ctx, *args):
                         value="Votes: **[{votes}]**".format(votes=votes), inline=False)
     response = await ctx.send(embed=embed)
     poll.message_id = response.id
+    pickle.dump(polls, open("polls.bin", "wb"))
 
 
 @makepoll.error

@@ -4,6 +4,7 @@ class Poll:
         self.name = name
         self.endtime = endtime
         self.options = [Option() for _ in range(10)]
+        self.is_active = True
 
     def add_option(self, author, author_id, movie):
         for option in self.options:
