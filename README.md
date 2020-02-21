@@ -1,5 +1,5 @@
 # pyGaBot
-A rewrite of GaBot in python3
+A rewrite of GaBot in python3 (minimum python 3.7 required)
 
 ## Building
 1. `pip install -r requirements.txt`
