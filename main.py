@@ -12,6 +12,7 @@ from datetime import datetime
 from os.path import exists
 
 import discord
+import jsonpickle
 from discord.ext import commands
 from flask import Flask, request, Response
 
@@ -25,7 +26,6 @@ if sys.version_info < (3, 7):
 if not exists("config.ini"):
     print("Could not find config.ini")
     exit()
-
 
 # Config file parser
 config = configparser.ConfigParser()
@@ -93,9 +93,30 @@ def get_twitch_user_by_name(usernames):
     return j
 
 
+# This will fetch the original message, and read all the reactions which in turn will update even if stuff
+# happened while offline! Should probably only be used when closing the poll because of the HTTP calls.
+async def updatePollStatus(id):
+    message = await bot.get_channel(polls[id].channel_id).fetch_message(polls[id].message_id)
+    print(message)
+    for reaction in message.reactions:
+        option_index = 0
+        try:
+            option_index = poll_emojis.index(str(reaction))
+        except ValueError:
+            continue
+
+        final_string = "{}: ".format(reaction)
+        polls[id].options[option_index].votes.clear()
+        async for user in reaction.users():
+            polls[id].options[option_index].votes.append(str(user))
+            final_string += "{}, ".format(user)
+        print(final_string)
+
+
 @bot.command()
 async def test(ctx):
-    print(json.dumps(polls, default=json_converter))
+    await updatePollStatus(0)
+    print(jsonpickle.encode(polls))
     # await ctx.send("Hello {}!".format(ctx.message.author.name))
 
 
@@ -108,10 +129,10 @@ async def disabletwitch(ctx):
 
 @bot.command()
 @commands.has_any_role("Mods", "Admin")
-async def enabletwitch(ctx, arg):
+async def enabletwitch(ctx, twitch_username):
     print(ctx.message.channel.id.__str__)
     if isinstance(ctx.message.channel, discord.TextChannel):
-        user_json = get_twitch_user_by_name(arg)
+        user_json = get_twitch_user_by_name(twitch_username)
         print(user_json)
         try:
             write_option("AnnouncementChannel", ctx.message.channel.id.__str__())
@@ -119,10 +140,10 @@ async def enabletwitch(ctx, arg):
             write_option("TwitchChannelID", user_json["data"][0]["id"])
             await ctx.send(
                 "Successfully set the announcement channel to: {}, I will post here when {} comes online.".format(
-                    ctx.message.channel.name, arg))
+                    ctx.message.channel.name, twitch_username))
             subscribe_to_twitch()
         except IndexError:
-            await ctx.send("Could not find user {}".format(arg))
+            await ctx.send("Could not find user {}".format(twitch_username))
     else:
         await ctx.send("Needs to be done in a regular channel")
         return
@@ -165,6 +186,7 @@ async def makepoll(ctx, *args):
                         value="Votes: **[{votes}]**".format(votes=votes), inline=False)
     response = await ctx.send(embed=embed)
     poll.message_id = response.id
+    poll.channel_id = ctx.message.channel.id
     pickle.dump(polls, open("polls.bin", "wb"))
 
 
@@ -283,6 +305,16 @@ async def on_ready():
     print('We have logged in as {0.user}'.format(bot))
     threading.Thread(target=runWebServer).start()
     threading.Thread(target=runStartupSubscription).start()
+
+
+@bot.event
+async def on_raw_reaction_add(payload):
+    print(payload)
+
+
+@bot.event
+async def on_raw_reaction_remove(payload):
+    print(payload)
 
 
 print("starting bot")

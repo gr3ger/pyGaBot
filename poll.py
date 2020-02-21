@@ -1,5 +1,6 @@
 class Poll:
-    def __init__(self, message_id=0, name="", endtime=""):
+    def __init__(self, message_id=0, name="", endtime="", channel_id=0):
+        self.channel_id = channel_id
         self.message_id = message_id
         self.name = name
         self.endtime = endtime
