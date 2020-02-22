@@ -31,6 +31,8 @@ if not exists("config.ini"):
 config = configparser.ConfigParser()
 config.read('config.ini')
 
+async_loop = asyncio.get_event_loop()
+
 connection = http.client.HTTPSConnection('api.twitch.tv')
 DISCORD_TOKEN = config['DEFAULT']['DiscordToken']
 CALL_CHARACTER = config['DEFAULT']['CallCharacter']
@@ -117,7 +119,6 @@ async def updatePollStatus(id):
 async def test(ctx):
     await updatePollStatus(0)
     print(jsonpickle.encode(polls))
-    # await ctx.send("Hello {}!".format(ctx.message.author.name))
 
 
 @bot.command()
@@ -258,7 +259,7 @@ def index():
 
         if "hub.topic" in request.args:
             print("Responding to challenge", file=sys.stderr)
-            response = Response()
+            response = Response(response="")
             response.status_code = 200
             response.content_type = 'text/plain'
             response.set_data(request.args['hub.challenge'])
@@ -272,16 +273,17 @@ def index():
 
         if len(req_data['data']) == 0:
             print("Empty data POST, ignoring", file=sys.stderr)
-            return Response(status=200)
+            return Response(status=200, response="")
 
-        asyncio.run(
+        asyncio.run_coroutine_threadsafe(
             send_message_to_channel(
                 "{name} is **{status}**\nGame id: **{game_id}**\nTitle: **{title}**".format(
                     name=req_data['data'][0]['user_name'],
                     status=req_data['data'][0]['type'],
                     game_id=req_data['data'][0]['game_id'],
-                    title=req_data['data'][0]['title']), int(read_option("announcementchannel", 0))))
-        response = Response()
+                    title=req_data['data'][0]['title']), int(read_option("announcementchannel", 0))),
+            async_loop).result()
+        response = Response(response="")
         response.status_code = 200
         return response
 
@@ -297,7 +299,7 @@ def runStartupSubscription():
 
 def runWebServer():
     print("Start webserver")
-    app.run(host='0.0.0.0', port=int(WEBHOOK_PORT), threaded=True, debug=False)
+    app.run(host='0.0.0.0', port=int(WEBHOOK_PORT), debug=False)
 
 
 @bot.event
