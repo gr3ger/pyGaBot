@@ -115,10 +115,11 @@ async def updatePollStatus(id):
         print(final_string)
 
 
-@bot.command()
+@bot.command(hidden=True)
+@commands.has_any_role("Mods", "Admin")
 async def test(ctx):
     """Developer test function"""
-    await updatePollStatus(0)
+    # await updatePollStatus(0)
     print(jsonpickle.encode(polls))
 
 
@@ -200,7 +201,6 @@ async def makepoll(ctx, *args):
 @makepoll.error
 async def makepoll_error(ctx, error):
     if isinstance(error, commands.UserInputError):
-        poll = Poll()
         await ctx.send('Usage: `{call_character}makepoll <hours> <"Poll title"> <first movie option>`'
                        '\nExample: `{call_character}makepoll 48 "Gabber Movie Poll" Yeeting with Wolves`'
                        .format(call_character=CALL_CHARACTER))
