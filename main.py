@@ -117,6 +117,7 @@ async def updatePollStatus(id):
 
 @bot.command()
 async def test(ctx):
+    """Developer test function"""
     await updatePollStatus(0)
     print(jsonpickle.encode(polls))
 
@@ -124,6 +125,7 @@ async def test(ctx):
 @bot.command()
 @commands.has_any_role("Mods", "Admin")
 async def disabletwitch(ctx):
+    """Stop sending twitch updates"""
     write_option("TwitchIntegrationEnabled", "False")
     await ctx.send("Twitch integration disabled")
 
@@ -131,6 +133,7 @@ async def disabletwitch(ctx):
 @bot.command()
 @commands.has_any_role("Mods", "Admin")
 async def enabletwitch(ctx, twitch_username):
+    """Send twitch updates to this channel"""
     print(ctx.message.channel.id.__str__)
     if isinstance(ctx.message.channel, discord.TextChannel):
         user_json = get_twitch_user_by_name(twitch_username)
@@ -158,9 +161,12 @@ async def enabletwitch_error(ctx, error):
                        .format(CALL_CHARACTER))
 
 
-@bot.command()
+@bot.command(usage='<hours> <"Poll title"> <first movie option>'
+                   '\nExample: {call_character}makepoll 48 "Gabber Movie Poll" Yeeting with Wolves'
+             .format(call_character=CALL_CHARACTER))
 @commands.has_any_role("Mods", "Admin")
 async def makepoll(ctx, *args):
+    """Creates a poll other users can add options and vote for"""
     endtime = time.time() + (int(args[0]) * 60 * 60)
     print(datetime.fromtimestamp(endtime).__str__())
 
@@ -253,7 +259,6 @@ app = Flask(__name__)
 def index():
     if request.method == 'GET':
         print(request.args, file=sys.stderr)
-
         req_data = request.get_json()
         print(json.dumps(req_data), file=sys.stderr)
 
@@ -289,7 +294,7 @@ def index():
 
 
 def runStartupSubscription():
-    time.sleep(5.0)
+    time.sleep(2.0)
     if read_option("TwitchIntegrationEnabled", "False") == "True":
         print("Subscribing to channel status")
         subscribe_to_twitch()
