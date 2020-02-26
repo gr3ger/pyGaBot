@@ -79,22 +79,6 @@ def read_option(key, default):
         return default
 
 
-def get_twitch_user_by_name(usernames):
-    if isinstance(usernames, list):
-        usernames = ['login={0}'.format(i) for i in usernames]
-        req = '/helix/users?' + '&'.join(usernames)
-    else:
-        req = '/helix/users?login=' + usernames
-
-    print(req)
-    connection.request('GET', req, None, headers={'Client-ID': TWITCH_CLIENT_ID})
-    response = connection.getresponse()
-    print(response.status, response.reason)
-    re = response.read().decode()
-    j = json.loads(re)
-    return j
-
-
 # This will fetch the original message, and read all the reactions which in turn will update even if stuff
 # happened while offline! Should probably only be used when closing the poll because of the HTTP calls.
 async def updatePollStatus(id):
@@ -131,6 +115,26 @@ async def disabletwitch(ctx):
     await ctx.send("Twitch integration disabled")
 
 
+def get_twitch_user_by_name(usernames):
+    try:
+        if isinstance(usernames, list):
+            usernames = ['login={0}'.format(i) for i in usernames]
+            req = '/helix/users?' + '&'.join(usernames)
+        else:
+            req = '/helix/users?login=' + usernames
+
+        print(req)
+        connection.request('GET', req, None, headers={'Client-ID': TWITCH_CLIENT_ID})
+        response = connection.getresponse()
+        print(response.status, response.reason)
+        re = response.read().decode()
+        j = json.loads(re)
+        return j
+    except Exception as e:
+        print(e, file=sys.stderr)
+        return e
+
+
 @bot.command()
 @commands.has_any_role("Mods", "Admin")
 async def enabletwitch(ctx, twitch_username):
@@ -138,7 +142,13 @@ async def enabletwitch(ctx, twitch_username):
     print(ctx.message.channel.id.__str__)
     if isinstance(ctx.message.channel, discord.TextChannel):
         user_json = get_twitch_user_by_name(twitch_username)
+
+        if isinstance(user_json, Exception):
+            await ctx.send("*Error: {}*".format(str(user_json)))
+            return
+
         print(user_json)
+
         try:
             write_option("AnnouncementChannel", ctx.message.channel.id.__str__())
             write_option("TwitchIntegrationEnabled", "True")
