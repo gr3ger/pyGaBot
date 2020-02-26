@@ -33,7 +33,7 @@ config.read('config.ini')
 
 async_loop = asyncio.get_event_loop()
 
-connection = http.client.HTTPSConnection('api.twitch.tv')
+connection = http.client.HTTPSConnection('api.twitch.tv', timeout=10)
 DISCORD_TOKEN = config['DEFAULT']['DiscordToken']
 CALL_CHARACTER = config['DEFAULT']['CallCharacter']
 TWITCH_CLIENT_ID = config['DEFAULT']['TwitchClientID']
