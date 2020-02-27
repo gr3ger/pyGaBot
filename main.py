@@ -4,7 +4,6 @@ import os
 import pickle
 import sys
 import time
-import urllib.request
 from datetime import datetime
 from os.path import exists
 
@@ -37,10 +36,6 @@ polls = []
 
 if os.path.isfile('polls.bin'):
     polls = pickle.load(open("polls.bin", "rb"))
-
-
-def get_external_ip():
-    return urllib.request.urlopen('https://ident.me').read().decode('utf8')
 
 
 def json_converter(o):
