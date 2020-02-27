@@ -3,7 +3,6 @@ DiscordToken = TOKEN_HERE
 CallCharacter = !
 TwitchClientID = CLIENT_ID_HERE
 TwitchClientSecret = CLIENT_SECRET_HERE
-WebhookPort = 5000
 
 [OPTIONS]
 TwitchIntegrationEnabled = False
