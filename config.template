@@ -6,3 +6,4 @@ TwitchClientSecret = CLIENT_SECRET_HERE
 
 [OPTIONS]
 TwitchIntegrationEnabled = False
+TwitchPollRate = 60

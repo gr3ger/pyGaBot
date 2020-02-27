@@ -10,7 +10,7 @@ from discord.ext import commands
 import settings
 
 
-class TwitchCog(commands.Cog):
+class TwitchCog(commands.Cog, name="Twitch"):
     def __init__(self, bot, client_id, client_secret, call_character):
         self.bot = bot
         self.is_running = False
