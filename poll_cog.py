@@ -79,8 +79,8 @@ class PollCog(commands.Cog, name="Polls"):
     @makepoll.error
     async def makepoll_error(self, ctx, error):
         await ctx.send(
-            "```Usage: {prefix}{usage}```".format(prefix=settings.CALL_CHARACTER,
-                                                  usage=self.bot.get_command("makepoll").usage))
+            "```Usage: {prefix}makepoll {usage}```".format(prefix=settings.CALL_CHARACTER,
+                                                           usage=self.bot.get_command("makepoll").usage))
 
     @commands.command()
     async def addoption(self, ctx):
