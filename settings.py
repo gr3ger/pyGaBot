@@ -9,6 +9,11 @@ KEY_TWITCH_INTEGRATION = "TwitchIntegrationEnabled"
 KEY_TWITCH_CHANNEL = "TwitchChannel"
 KEY_ANNOUNCEMENT_CHANNEL = "announcementchannel"
 
+DISCORD_TOKEN = config['DEFAULT']['DiscordToken']
+CALL_CHARACTER = config['DEFAULT']['CallCharacter']
+TWITCH_CLIENT_ID = config['DEFAULT']['TwitchClientID']
+TWITCH_CLIENT_SECRET = config['DEFAULT']['TwitchClientSecret']
+
 
 def write_option(key, value):
     config['OPTIONS'][key] = value

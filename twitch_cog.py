@@ -11,15 +11,12 @@ import settings
 
 
 class TwitchCog(commands.Cog, name="Twitch"):
-    def __init__(self, bot, client_id, client_secret, call_character):
+    def __init__(self, bot):
         self.bot = bot
         self.is_running = False
         self.abort = False
         self.was_previously_online = False
         self.connection = http.client.HTTPSConnection('api.twitch.tv', timeout=10)
-        self.CALL_CHARACTER = call_character
-        self.TWITCH_CLIENT_ID = client_id
-        self.TWITCH_CLIENT_SECRET = client_secret
         self.POLL_RATE = int(settings.read_option(settings.KEY_POLL_RATE, 60))
 
         if not self.is_running and settings.read_option(settings.KEY_TWITCH_INTEGRATION, "False") == "True":
@@ -34,7 +31,7 @@ class TwitchCog(commands.Cog, name="Twitch"):
                 req = '/helix/users?login=' + usernames
 
             print(req)
-            self.connection.request('GET', req, None, headers={'Client-ID': self.TWITCH_CLIENT_ID})
+            self.connection.request('GET', req, None, headers={'Client-ID': settings.TWITCH_CLIENT_ID})
             response = self.connection.getresponse()
             print(response.status, response.reason)
             re = response.read().decode()
@@ -52,7 +49,7 @@ class TwitchCog(commands.Cog, name="Twitch"):
             else:
                 req = '/helix/streams?user_login=' + usernames
 
-            self.connection.request('GET', req, None, headers={'Client-ID': self.TWITCH_CLIENT_ID})
+            self.connection.request('GET', req, None, headers={'Client-ID': settings.TWITCH_CLIENT_ID})
             response = self.connection.getresponse()
             print("{}: {} {}".format(req, response.status, response.reason))
             re = response.read().decode()
@@ -136,4 +133,4 @@ class TwitchCog(commands.Cog, name="Twitch"):
         if isinstance(error, commands.UserInputError):
             await ctx.send('Usage: `{}enabletwitch <twitch_channel_name>` '
                            '\nIt must be used in a regular channel so it knows where to post announcements.'
-                           .format(self.CALL_CHARACTER))
+                           .format(settings.CALL_CHARACTER))
