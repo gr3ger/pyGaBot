@@ -8,6 +8,8 @@ KEY_POLL_RATE = "TwitchPollRate"
 KEY_TWITCH_INTEGRATION = "TwitchIntegrationEnabled"
 KEY_TWITCH_CHANNEL = "TwitchChannel"
 KEY_ANNOUNCEMENT_CHANNEL = "announcementchannel"
+KEY_TWITCH_ACCESS_TOKEN = "twitchaccesstoken"
+KEY_TWITCH_REFRESH_TOKEN = "twitchrefreshtoken"
 
 DISCORD_TOKEN = config['DEFAULT']['DiscordToken']
 CALL_CHARACTER = config['DEFAULT']['CallCharacter']

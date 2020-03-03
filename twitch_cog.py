@@ -16,7 +16,6 @@ class TwitchCog(commands.Cog, name="Twitch"):
         self.is_running = False
         self.abort = False
         self.was_previously_online = False
-        self.connection = http.client.HTTPSConnection('api.twitch.tv', timeout=10)
         self.POLL_RATE = int(settings.read_option(settings.KEY_POLL_RATE, 60))
 
         if not self.is_running and settings.read_option(settings.KEY_TWITCH_INTEGRATION, "False") == "True":
@@ -31,12 +30,66 @@ class TwitchCog(commands.Cog, name="Twitch"):
                 req = '/helix/users?login=' + usernames
 
             print(req)
-            self.connection.request('GET', req, None, headers={'Client-ID': settings.TWITCH_CLIENT_ID})
-            response = self.connection.getresponse()
-            print(response.status, response.reason)
+
+            connection = http.client.HTTPSConnection('api.twitch.tv', timeout=10)
+            connection.request('GET', req, None, headers={
+                'Authorization': "Bearer " + settings.read_option(settings.KEY_TWITCH_ACCESS_TOKEN, "")})
+            response = connection.getresponse()
+
+            print("{}: {} {}".format(req, response.status, response.reason))
             re = response.read().decode()
             j = json.loads(re)
             return j
+        except Exception as e:
+            print(e, file=sys.stderr)
+            return e
+
+    def get_access_token(self):
+        try:
+            print("Attempting to get access token")
+            connect_string = "/oauth2/token?client_id={client_id}" \
+                             "&client_secret={client_secret}" \
+                             "&grant_type=client_credentials".format(client_id=settings.TWITCH_CLIENT_ID,
+                                                                     client_secret=settings.TWITCH_CLIENT_SECRET)
+            auth_connection = http.client.HTTPSConnection('id.twitch.tv', timeout=10)
+            auth_connection.request('POST', connect_string, None)
+            response = auth_connection.getresponse()
+            print("{}: {} {}".format(connect_string, response.status, response.reason))
+            re = response.read().decode()
+            j = json.loads(re)
+            settings.write_option(settings.KEY_TWITCH_ACCESS_TOKEN, j["access_token"])
+            settings.write_option(settings.KEY_TWITCH_REFRESH_TOKEN, j["refresh_token"])
+            return j
+        except Exception as e:
+            print(e, file=sys.stderr)
+            return e
+
+    def refresh_token(self):
+        try:
+            print("Attempting refresh token")
+            connect_string = "/oauth2/token?grant_type=refresh_token"
+            "&refresh_token={refresh_token}"
+            "&client_id={client_id}"
+            "&client_secret={client_secret}".format(
+                client_id=settings.TWITCH_CLIENT_ID,
+                client_secret=settings.TWITCH_CLIENT_SECRET,
+                refresh_token=settings.read_option(settings.KEY_TWITCH_REFRESH_TOKEN, ""))
+
+            auth_connection = http.client.HTTPSConnection('id.twitch.tv', timeout=10)
+            auth_connection.request('POST',
+                                    connect_string,
+                                    None)
+            response = auth_connection.getresponse()
+            print("{}: {} {}".format(connect_string, response.status, response.reason))
+            print(response.status, response.reason)
+            if response.status == 401 or response.status == 403 or response.status == 400:
+                return self.get_access_token()
+            re = response.read().decode()
+            j = json.loads(re)
+            settings.write_option(settings.KEY_TWITCH_ACCESS_TOKEN, j["access_token"])
+            settings.write_option(settings.KEY_TWITCH_REFRESH_TOKEN, j["refresh_token"])
+            return j
+
         except Exception as e:
             print(e, file=sys.stderr)
             return e
@@ -49,9 +102,16 @@ class TwitchCog(commands.Cog, name="Twitch"):
             else:
                 req = '/helix/streams?user_login=' + usernames
 
-            self.connection.request('GET', req, None, headers={'Client-ID': settings.TWITCH_CLIENT_ID})
-            response = self.connection.getresponse()
+            connection = http.client.HTTPSConnection('api.twitch.tv', timeout=10)
+            connection.request('GET', req, None, headers={
+                'Authorization': "Bearer " + settings.read_option(settings.KEY_TWITCH_ACCESS_TOKEN, "")})
+            response = connection.getresponse()
             print("{}: {} {}".format(req, response.status, response.reason))
+
+            if response.status == 401:
+                self.refresh_token()
+                return self.get_streams(usernames)
+
             re = response.read().decode()
             j = json.loads(re)
             return j
