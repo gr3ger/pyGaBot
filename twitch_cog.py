@@ -37,6 +37,9 @@ class TwitchCog(commands.Cog, name="Twitch"):
             response = connection.getresponse()
 
             print("{}: {} {}".format(req, response.status, response.reason))
+            if response.status == 401:
+                self.get_access_token()
+                return self.get_twitch_user_by_name(usernames)
             re = response.read().decode()
             j = json.loads(re)
             return j
@@ -58,38 +61,7 @@ class TwitchCog(commands.Cog, name="Twitch"):
             re = response.read().decode()
             j = json.loads(re)
             settings.write_option(settings.KEY_TWITCH_ACCESS_TOKEN, j["access_token"])
-            settings.write_option(settings.KEY_TWITCH_REFRESH_TOKEN, j["refresh_token"])
             return j
-        except Exception as e:
-            print(e, file=sys.stderr)
-            return e
-
-    def refresh_token(self):
-        try:
-            print("Attempting refresh token")
-            connect_string = "/oauth2/token?grant_type=refresh_token"
-            "&refresh_token={refresh_token}"
-            "&client_id={client_id}"
-            "&client_secret={client_secret}".format(
-                client_id=settings.TWITCH_CLIENT_ID,
-                client_secret=settings.TWITCH_CLIENT_SECRET,
-                refresh_token=settings.read_option(settings.KEY_TWITCH_REFRESH_TOKEN, ""))
-
-            auth_connection = http.client.HTTPSConnection('id.twitch.tv', timeout=10)
-            auth_connection.request('POST',
-                                    connect_string,
-                                    None)
-            response = auth_connection.getresponse()
-            print("{}: {} {}".format(connect_string, response.status, response.reason))
-            print(response.status, response.reason)
-            if response.status == 401 or response.status == 403 or response.status == 400:
-                return self.get_access_token()
-            re = response.read().decode()
-            j = json.loads(re)
-            settings.write_option(settings.KEY_TWITCH_ACCESS_TOKEN, j["access_token"])
-            settings.write_option(settings.KEY_TWITCH_REFRESH_TOKEN, j["refresh_token"])
-            return j
-
         except Exception as e:
             print(e, file=sys.stderr)
             return e
@@ -109,7 +81,7 @@ class TwitchCog(commands.Cog, name="Twitch"):
             print("{}: {} {}".format(req, response.status, response.reason))
 
             if response.status == 401:
-                self.refresh_token()
+                self.get_access_token()
                 return self.get_streams(usernames)
 
             re = response.read().decode()
