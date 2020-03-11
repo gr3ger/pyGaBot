@@ -89,13 +89,14 @@ class PollCog(commands.Cog, name="Polls"):
         embed.set_footer(text="Vote for any of the options by reacting to this message with :one:, :two:, etc.\n"
                               "Use the command `!addoption {} OptionName` to add a new option to the poll.".format(
             str(poll.id)))
-        for x in range(0, 9):
+        for x in range(0, 10):
             if poll.options[x].name == "":
                 continue
             embed.add_field(name="{num_emoji} - `{movie_title}` - *[{user}]*".format(num_emoji=PollCog.poll_emojis[x],
                                                                                      movie_title=poll.options[x].name,
                                                                                      user=poll.options[x].author),
-                            value="Votes: **[{votes}]**".format(votes="X" * len(poll.options[x].votes)), inline=False)
+                            value="Votes: **[{votes}]**".format(votes="X" * poll.get_vote_count(x, self.bot.user.id)),
+                            inline=False)
         return embed
 
     async def printPoll(self, ctx, poll):
@@ -132,6 +133,15 @@ class PollCog(commands.Cog, name="Polls"):
         if str(payload.channel_id) == settings.read_option(settings.KEY_ANNOUNCEMENT_CHANNEL, ""):
             for poll in self.pollList.polls:
                 if poll.message_id == payload.message_id:
+                    # Allow the bot to do multiple votes
+                    if payload.user_id != self.bot.user.id and poll.has_already_voted(payload.user_id):
+                        user = self.bot.get_user(payload.user_id)
+                        channel = user.dm_channel
+                        if channel is None:
+                            channel = await user.create_dm()
+                        await channel.send(
+                            "You have already voted in this poll, please make sure you only have one vote to make it count.")
+
                     poll.add_vote(PollCog.poll_emojis.index(payload.emoji.name), payload.user_id)
                     pickle.dump(self.pollList, open("polls.bin", "wb"))
                     await self.updatePollMessage(poll)

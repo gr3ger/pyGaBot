@@ -1,3 +1,6 @@
+from utils import intersection
+
+
 class PollList:
     def __init__(self):
         self.polls = []
@@ -28,8 +31,36 @@ class Poll:
     def add_vote(self, index, user_id):
         self.options[index].votes.append(user_id)
 
-    def remove_vote(self, index, user):
-        self.options[index].votes.remove(user)
+    def remove_vote(self, index, user_id):
+        self.options[index].votes.remove(user_id)
+
+    def has_already_voted(self, user_id):
+        for option in self.options:
+            if user_id in option.votes:
+                return True
+        return False
+
+    def get_vote_count(self, option_index, bot_id):
+        # Intersect all votes to know which ones we should ignore
+        tempList = set()
+        for i in range(0, 10):
+            if i != option_index:
+                tempList.update(self.options[i].votes)
+
+        tempList = intersection(tempList, self.options[option_index].votes)
+
+        try:
+            tempList.remove(bot_id)
+        except ValueError:
+            pass
+
+        votes = self.options[option_index].votes
+        count = 0
+        for user in votes:
+            if user not in tempList:
+                count += 1
+
+        return count
 
 
 class Option:
