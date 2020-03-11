@@ -62,7 +62,9 @@ class PollCog(commands.Cog, name="Polls"):
         """Creates a poll other users can add options and vote for"""
         endtime = int(datetime.utcnow().strftime("%s")) + (int(args[0]) * 60 * 60)
 
-        poll = Poll(name=args[1], endtime=endtime, id=self.pollList.currentIndex, channel_id=ctx.message.channel.id)
+        poll = Poll(name=args[1], endtime=endtime, id=self.pollList.currentIndex, channel_id=ctx.message.channel.id,
+                    author=str(ctx.message.author.name), thumbnail_url=str(ctx.message.guild.icon_url),
+                    icon_url=str(ctx.message.author.avatar_url))
         poll.add_option(ctx.message.author.name, ctx.message.author.id,
                         " ".join(args[2:]))
 
@@ -74,17 +76,16 @@ class PollCog(commands.Cog, name="Polls"):
         await response.add_reaction(self.poll_emojis[0])
         pickle.dump(self.pollList, open("polls.bin", "wb"))
 
-    async def printPoll(self, ctx, poll):
-        votes = ""
-        embed = discord.Embed(title="*created by {creator_name}* - Poll is active, ends on {endtime}.".format(
-            creator_name=ctx.message.author.name,
+    def makePollEmbed(self, poll):
+        embed = discord.Embed(title="*created by {creator_name}* \nPoll is active, ends on {endtime}.".format(
+            creator_name=poll.author,
             endtime=datetime.fromtimestamp(poll.endtime).strftime("%Y-%m-%d %H:%M UTC")),
             color=0xff3333)
         embed.set_author(
             name="{poll_name} - Poll number #{poll_id}".format(poll_name=poll.name,
                                                                poll_id=poll.id),
-            icon_url=ctx.message.author.avatar_url)
-        embed.set_thumbnail(url=ctx.message.guild.icon_url)
+            icon_url=poll.icon_url)
+        embed.set_thumbnail(url=poll.thumbnail_url)
         embed.set_footer(text="Vote for any of the options by reacting to this message with :one:, :two:, etc.\n"
                               "Use the command `!addoption {} OptionName` to add a new option to the poll.".format(
             str(poll.id)))
@@ -94,8 +95,15 @@ class PollCog(commands.Cog, name="Polls"):
             embed.add_field(name="{num_emoji} - `{movie_title}` - *[{user}]*".format(num_emoji=PollCog.poll_emojis[x],
                                                                                      movie_title=poll.options[x].name,
                                                                                      user=poll.options[x].author),
-                            value="Votes: **[{votes}]**".format(votes=votes), inline=False)
-        return await ctx.send(embed=embed)
+                            value="Votes: **[{votes}]**".format(votes="X" * len(poll.options[x].votes)), inline=False)
+        return embed
+
+    async def printPoll(self, ctx, poll):
+        return await ctx.send(embed=self.makePollEmbed(poll))
+
+    async def updatePollMessage(self, poll):
+        message = await self.bot.get_channel(poll.channel_id).fetch_message(poll.message_id)
+        await message.edit(embed=self.makePollEmbed(poll))
 
     @makepoll.error
     async def makepoll_error(self, ctx, error):
@@ -121,7 +129,21 @@ class PollCog(commands.Cog, name="Polls"):
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
         print(payload)
+        if str(payload.channel_id) == settings.read_option(settings.KEY_ANNOUNCEMENT_CHANNEL, ""):
+            for poll in self.pollList.polls:
+                if poll.message_id == payload.message_id:
+                    poll.add_vote(PollCog.poll_emojis.index(payload.emoji.name), payload.user_id)
+                    pickle.dump(self.pollList, open("polls.bin", "wb"))
+                    await self.updatePollMessage(poll)
+                    break
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload):
         print(payload)
+        if str(payload.channel_id) == settings.read_option(settings.KEY_ANNOUNCEMENT_CHANNEL, ""):
+            for poll in self.pollList.polls:
+                if poll.message_id == payload.message_id:
+                    poll.remove_vote(PollCog.poll_emojis.index(payload.emoji.name), payload.user_id)
+                    pickle.dump(self.pollList, open("polls.bin", "wb"))
+                    await self.updatePollMessage(poll)
+                    break

@@ -27,7 +27,7 @@ bot = commands.Bot(command_prefix=settings.CALL_CHARACTER)
 async def test(ctx):
     """Developer test function"""
     # await updatePollStatus(0)
-    print(jsonpickle.encode(bot.get_cog("Polls").polls))
+    print(jsonpickle.encode(bot.get_cog("Polls").pollList.polls))
 
 @bot.event
 async def on_ready():
