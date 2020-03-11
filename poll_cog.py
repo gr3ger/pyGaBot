@@ -7,7 +7,7 @@ import discord
 from discord.ext import commands
 
 import settings
-from poll import Poll
+from poll import Poll, PollList
 
 
 class PollCog(commands.Cog, name="Polls"):
@@ -15,10 +15,10 @@ class PollCog(commands.Cog, name="Polls"):
 
     def __init__(self, bot):
         self.bot = bot
-        self.polls = []
+        self.pollList = PollList()
 
         if os.path.isfile('polls.bin'):
-            self.polls = pickle.load(open("polls.bin", "rb"))
+            self.pollList = pickle.load(open("polls.bin", "rb"))
 
     async def send_message_to_channel(self, string, channel_id: int):
         print("Sending announcement to channel {}".format(channel_id))
@@ -26,9 +26,20 @@ class PollCog(commands.Cog, name="Polls"):
         await channel.send(string)
 
     # This will fetch the original message, and read all the reactions which in turn will update even if stuff
-    # happened while offline! Should probably only be used when closing the poll because of the HTTP calls.
-    async def updatePollStatus(self, id):
-        message = await self.bot.get_channel(self.polls[id].channel_id).fetch_message(self.polls[id].message_id)
+    # happened while offline! Should probably only be used when closing the poll because of (I assume) the HTTP calls.
+    async def updatePollStatus(self, poll_id):
+        poll = None
+        for p in self.pollList.polls:
+            if p.id == poll_id:
+                poll = p
+                break
+
+        if poll is None:
+            print("Could not find a poll with id {}".format(poll_id))
+            return
+
+        message = await self.bot.get_channel(poll.channel_id).fetch_message(
+            poll.message_id)
         print(message)
         for reaction in message.reactions:
             try:
@@ -37,11 +48,12 @@ class PollCog(commands.Cog, name="Polls"):
                 continue
 
             final_string = "{}: ".format(reaction)
-            self.polls[id].options[option_index].votes.clear()
+            poll.options[option_index].votes.clear()
             async for user in reaction.users():
-                self.polls[id].options[option_index].votes.append(str(user))
+                poll.options[option_index].votes.append(str(user))
                 final_string += "{}, ".format(user)
             print(final_string)
+        pickle.dump(self.pollList.polls, open("polls.bin", "wb"))
 
     @commands.command(usage='<hours> <"Poll title"> <first movie option>'
                             '\nExample: {call_character}makepoll 48 "Gabber Movie Poll" Yeeting with Wolves'
@@ -52,16 +64,23 @@ class PollCog(commands.Cog, name="Polls"):
         endtime = time.time() + (int(args[0]) * 60 * 60)
         print(datetime.fromtimestamp(endtime).__str__())
 
-        poll = Poll(name=args[1], endtime=endtime)
+        poll = Poll(name=args[1], endtime=endtime, id=self.pollList.currentIndex, channel_id=ctx.message.channel.id)
         poll.add_option(ctx.message.author.name, ctx.message.author.id,
                         " ".join(args[2:]))
-        self.polls.append(poll)
 
+        response = await self.printPoll(ctx, poll)
+        poll.message_id = response.id
+        self.pollList.currentIndex += 1
+        self.pollList.polls.append(poll)
+        pickle.dump(self.pollList.polls, open("polls.bin", "wb"))
+
+    async def printPoll(self, ctx, poll):
         votes = ""
-        embed = discord.Embed(title="*created by {creator_name}* - Poll is active, {hours_left} hours left.".format(
-            creator_name=ctx.message.author.name, hours_left=args[0]), color=0xff3333)
+        embed = discord.Embed(title="*created by {creator_name}* - Poll is active, ends on {endtime}.".format(
+            creator_name=ctx.message.author.name, endtime=poll.endtime), color=0xff3333)
         embed.set_author(
-            name="{poll_name} - Poll number #{poll_number}".format(poll_name=args[1], poll_number=str(len(self.polls))),
+            name="{poll_name} - Poll number #{poll_number}".format(poll_name=poll.name,
+                                                                   poll_number=str(len(self.pollList.polls))),
             icon_url=ctx.message.author.avatar_url)
         embed.set_thumbnail(url=ctx.message.guild.icon_url)
         for x in range(0, 9):
@@ -71,10 +90,7 @@ class PollCog(commands.Cog, name="Polls"):
                                                                                      movie_title=poll.options[x].name,
                                                                                      user=poll.options[x].author),
                             value="Votes: **[{votes}]**".format(votes=votes), inline=False)
-        response = await ctx.send(embed=embed)
-        poll.message_id = response.id
-        poll.channel_id = ctx.message.channel.id
-        pickle.dump(self.polls, open("polls.bin", "wb"))
+        return await ctx.send(embed=embed)
 
     @makepoll.error
     async def makepoll_error(self, ctx, error):
@@ -95,3 +111,11 @@ class PollCog(commands.Cog, name="Polls"):
     @commands.has_any_role("Mods", "Admin")
     async def removeoption(self, ctx):
         await ctx.send("removeoption: Not implemented yet")
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_add(self, payload):
+        print(payload)
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_remove(self, payload):
+        print(payload)

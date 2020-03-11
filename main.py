@@ -36,15 +36,5 @@ async def on_ready():
     bot.add_cog(TwitchCog(bot))
 
 
-@bot.event
-async def on_raw_reaction_add(payload):
-    print(payload)
-
-
-@bot.event
-async def on_raw_reaction_remove(payload):
-    print(payload)
-
-
 print("starting bot")
 bot.run(settings.DISCORD_TOKEN)

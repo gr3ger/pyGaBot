@@ -1,5 +1,12 @@
+class PollList:
+    def __init__(self):
+        self.polls = []
+        self.currentIndex = 1
+
+
 class Poll:
-    def __init__(self, message_id=0, name="", endtime="", channel_id=0):
+    def __init__(self, message_id=0, name="", endtime="", channel_id=0, id=0):
+        self.id = id
         self.channel_id = channel_id
         self.message_id = message_id
         self.name = name
