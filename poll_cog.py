@@ -1,6 +1,5 @@
 import os
 import pickle
-import time
 from datetime import datetime
 
 import discord
@@ -53,7 +52,7 @@ class PollCog(commands.Cog, name="Polls"):
                 poll.options[option_index].votes.append(str(user))
                 final_string += "{}, ".format(user)
             print(final_string)
-        pickle.dump(self.pollList.polls, open("polls.bin", "wb"))
+        pickle.dump(self.pollList, open("polls.bin", "wb"))
 
     @commands.command(usage='<hours> <"Poll title"> <first movie option>'
                             '\nExample: {call_character}makepoll 48 "Gabber Movie Poll" Yeeting with Wolves'
@@ -61,8 +60,7 @@ class PollCog(commands.Cog, name="Polls"):
     @commands.has_any_role("Mods", "Admin")
     async def makepoll(self, ctx, *args):
         """Creates a poll other users can add options and vote for"""
-        endtime = time.time() + (int(args[0]) * 60 * 60)
-        print(datetime.fromtimestamp(endtime).__str__())
+        endtime = int(datetime.utcnow().strftime("%s")) + (int(args[0]) * 60 * 60)
 
         poll = Poll(name=args[1], endtime=endtime, id=self.pollList.currentIndex, channel_id=ctx.message.channel.id)
         poll.add_option(ctx.message.author.name, ctx.message.author.id,
@@ -72,15 +70,17 @@ class PollCog(commands.Cog, name="Polls"):
         poll.message_id = response.id
         self.pollList.currentIndex += 1
         self.pollList.polls.append(poll)
-        pickle.dump(self.pollList.polls, open("polls.bin", "wb"))
+        pickle.dump(self.pollList, open("polls.bin", "wb"))
 
     async def printPoll(self, ctx, poll):
         votes = ""
         embed = discord.Embed(title="*created by {creator_name}* - Poll is active, ends on {endtime}.".format(
-            creator_name=ctx.message.author.name, endtime=poll.endtime), color=0xff3333)
+            creator_name=ctx.message.author.name,
+            endtime=datetime.fromtimestamp(poll.endtime).strftime("%Y-%m-%d %H:%M UTC")),
+            color=0xff3333)
         embed.set_author(
-            name="{poll_name} - Poll number #{poll_number}".format(poll_name=poll.name,
-                                                                   poll_number=str(len(self.pollList.polls))),
+            name="{poll_name} - Poll number #{poll_id}".format(poll_name=poll.name,
+                                                               poll_id=poll.id),
             icon_url=ctx.message.author.avatar_url)
         embed.set_thumbnail(url=ctx.message.guild.icon_url)
         for x in range(0, 9):
@@ -94,6 +94,7 @@ class PollCog(commands.Cog, name="Polls"):
 
     @makepoll.error
     async def makepoll_error(self, ctx, error):
+        print("Failed creating poll: {}".format(error))
         await ctx.send(
             "```Usage: {prefix}makepoll {usage}```".format(prefix=settings.CALL_CHARACTER,
                                                            usage=self.bot.get_command("makepoll").usage))
