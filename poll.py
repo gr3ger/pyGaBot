@@ -46,9 +46,9 @@ class Poll:
         for i in range(0, 10):
             if i != option_index:
                 tempList.update(self.options[i].votes)
-
         tempList = intersection(tempList, self.options[option_index].votes)
 
+        # Remove bot ID since it's allowed to make multiple votes
         try:
             tempList.remove(bot_id)
         except ValueError:
