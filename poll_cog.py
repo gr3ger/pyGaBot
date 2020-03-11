@@ -70,6 +70,8 @@ class PollCog(commands.Cog, name="Polls"):
         poll.message_id = response.id
         self.pollList.currentIndex += 1
         self.pollList.polls.append(poll)
+
+        await response.add_reaction(self.poll_emojis[0])
         pickle.dump(self.pollList, open("polls.bin", "wb"))
 
     async def printPoll(self, ctx, poll):
@@ -83,6 +85,9 @@ class PollCog(commands.Cog, name="Polls"):
                                                                poll_id=poll.id),
             icon_url=ctx.message.author.avatar_url)
         embed.set_thumbnail(url=ctx.message.guild.icon_url)
+        embed.set_footer(text="Vote for any of the options by reacting to this message with :one:, :two:, etc.\n"
+                              "Use the command `!addoption {} OptionName` to add a new option to the poll.".format(
+            str(poll.id)))
         for x in range(0, 9):
             if poll.options[x].name == "":
                 continue
