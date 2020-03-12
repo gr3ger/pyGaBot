@@ -2,3 +2,4 @@ config.ini
 .idea/
 /client_data.sqlite3
 /polls.bin
+/custom_commands.bin
