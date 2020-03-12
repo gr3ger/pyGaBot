@@ -4,7 +4,6 @@ import pickle
 import sys
 from os.path import exists
 
-import jsonpickle
 from discord.ext import commands
 from discord.ext.commands import CommandNotFound
 
@@ -33,7 +32,8 @@ if os.path.isfile('custom_commands.bin'):
 @commands.has_any_role("Mods", "Admin")
 async def test(ctx):
     """Developer test function"""
-    print(jsonpickle.encode(bot.get_cog("Polls").pollList.polls))
+    print(bot.all_commands.keys())
+    # print(jsonpickle.encode(bot.get_cog("Polls").pollList.polls))
 
 
 @bot.event
@@ -57,19 +57,11 @@ async def on_command_error(ctx, error):
 @commands.has_any_role("Mods", "Admin")
 async def addcommand(ctx, *args):
     """Adds a custom text command"""
-    cog_commands = []
-    for cog in bot.cogs:
-        for command in bot.get_cog(cog).get_commands():
-            cog_commands.append(command.name)
-    cog_commands.append("addcommand")
-    cog_commands.append("removecommand")
-    cog_commands.append("test")
-    cog_commands.append("textcommands")
 
     if args[0] in custom_commands:
         await ctx.send("there is already a custom command named `{}`".format(args[0]), delete_after=3)
         return
-    if args[0] in cog_commands:
+    if args[0] in bot.all_commands.keys():
         await ctx.send("there is already a native command named `{}`".format(args[0]), delete_after=3)
         return
 
