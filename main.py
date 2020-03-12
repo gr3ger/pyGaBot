@@ -61,6 +61,10 @@ async def addcommand(ctx, *args):
     for cog in bot.cogs:
         for command in bot.get_cog(cog).get_commands():
             cog_commands.append(command.name)
+    cog_commands.append("addcommand")
+    cog_commands.append("removecommand")
+    cog_commands.append("test")
+    cog_commands.append("textcommands")
 
     if args[0] in custom_commands:
         await ctx.send("there is already a custom command named `{}`".format(args[0]), delete_after=3)
@@ -69,13 +73,12 @@ async def addcommand(ctx, *args):
         await ctx.send("there is already a native command named `{}`".format(args[0]), delete_after=3)
         return
 
-    value = " ".join(args[1:])
-
+    value = " ".join(ctx.message.content.split(" ")[2:])
     if value == "":
         await ctx.send("The value of the command cannot be empty".format(args[0]), delete_after=3)
         return
 
-    custom_commands[args[0]] = " ".join(args[1:])
+    custom_commands[args[0]] = value
     pickle.dump(custom_commands, open("custom_commands.bin", "wb"))
     await ctx.send("`{}` has been added as a new custom command".format(args[0]))
 
@@ -97,7 +100,10 @@ async def textcommands(ctx):
     """Lists all custom text commands"""
     output = "```"
     for key in custom_commands:
-        output += "{} - {}\n".format(key, custom_commands[key])
+        output += "{} - {}\n".format(key,
+                                     (custom_commands[key][:40] + '...').replace('\n', ' ').replace('\r', '') if len(
+                                         custom_commands[key].replace('\n', ' ').replace('\r', '')) > 43 else
+                                     custom_commands[key].replace('\n', ' ').replace('\r', ''))
 
     if output != "```":
         output += "```"
