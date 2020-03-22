@@ -94,21 +94,23 @@ class TwitchCog(commands.Cog, name="Twitch"):
     async def poll_thread(self):
         self.is_running = True
         while not self.abort:
-            result_json = self.get_streams(settings.read_option(settings.KEY_TWITCH_CHANNEL, ""))
-            is_online = False
-            for stream in result_json["data"]:
-                if stream["user_name"] == settings.read_option(settings.KEY_TWITCH_CHANNEL, ""):
-                    is_online = True
-                    if not self.was_previously_online:
-                        await self.send_message_to_channel(
-                            "{name} is **{status}**\nGame id: **{game_id}**\nTitle: **{title}**".format(
-                                name=stream['user_name'],
-                                status=stream['type'],
-                                game_id=stream['game_id'],
-                                title=stream['title']),
-                            int(settings.read_option(settings.KEY_ANNOUNCEMENT_CHANNEL, 0)))
-
-            self.was_previously_online = is_online
+            try:
+                result_json = self.get_streams(settings.read_option(settings.KEY_TWITCH_CHANNEL, ""))
+                is_online = False
+                for stream in result_json["data"]:
+                    if stream["user_name"] == settings.read_option(settings.KEY_TWITCH_CHANNEL, ""):
+                        is_online = True
+                        if not self.was_previously_online:
+                            await self.send_message_to_channel(
+                                "{name} is **{status}**\nGame id: **{game_id}**\nTitle: **{title}**".format(
+                                    name=stream['user_name'],
+                                    status=stream['type'],
+                                    game_id=stream['game_id'],
+                                    title=stream['title']),
+                                int(settings.read_option(settings.KEY_ANNOUNCEMENT_CHANNEL, 0)))
+                self.was_previously_online = is_online
+            except Exception as e:
+                print(e)
             await asyncio.sleep(self.POLL_RATE)
         print("Polling thread quit")
         self.abort = False
