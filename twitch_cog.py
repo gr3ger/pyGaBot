@@ -76,7 +76,9 @@ class TwitchCog(commands.Cog, name="Twitch"):
 
             connection = http.client.HTTPSConnection('api.twitch.tv', timeout=10)
             connection.request('GET', req, None, headers={
-                'Authorization': "Bearer " + settings.read_option(settings.KEY_TWITCH_ACCESS_TOKEN, "")})
+                'Authorization': "Bearer " + settings.read_option(settings.KEY_TWITCH_ACCESS_TOKEN, ""),
+                'client-id': settings.TWITCH_CLIENT_ID
+            })
             response = connection.getresponse()
             print("{}: {} {}".format(req, response.status, response.reason))
 
