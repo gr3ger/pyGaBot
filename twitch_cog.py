@@ -33,7 +33,8 @@ class TwitchCog(commands.Cog, name="Twitch"):
 
             connection = http.client.HTTPSConnection('api.twitch.tv', timeout=10)
             connection.request('GET', req, None, headers={
-                'Authorization': "Bearer " + settings.read_option(settings.KEY_TWITCH_ACCESS_TOKEN, "")})
+                'Authorization': "Bearer " + settings.read_option(settings.KEY_TWITCH_ACCESS_TOKEN, ""),
+                'client-id': settings.TWITCH_CLIENT_ID})
             response = connection.getresponse()
 
             print("{}: {} {}".format(req, response.status, response.reason))
@@ -60,6 +61,7 @@ class TwitchCog(commands.Cog, name="Twitch"):
             print("{}: {} {}".format(connect_string, response.status, response.reason))
             re = response.read().decode()
             j = json.loads(re)
+            print(j)
             settings.write_option(settings.KEY_TWITCH_ACCESS_TOKEN, j["access_token"])
             return j
         except Exception as e:
@@ -104,11 +106,10 @@ class TwitchCog(commands.Cog, name="Twitch"):
                         is_online = True
                         if not self.was_previously_online:
                             await self.send_message_to_channel(
-                                "{name} is **{status}**\nGame id: **{game_id}**\nTitle: **{title}**".format(
-                                    name=stream['user_name'],
-                                    status=stream['type'],
-                                    game_id=stream['game_id'],
-                                    title=stream['title']),
+                                settings.TWITCH_ANNOUNCEMENT_MESSAGE.format(
+                                    streamer=stream['user_name'],
+                                    stream_link="https://twitch.tv/" + stream['user_name'],
+                                    stream_description=stream['title']),
                                 int(settings.read_option(settings.KEY_ANNOUNCEMENT_CHANNEL, 0)))
                 self.was_previously_online = is_online
             except Exception as e:

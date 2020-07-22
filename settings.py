@@ -14,6 +14,7 @@ DISCORD_TOKEN = config['DEFAULT']['DiscordToken']
 CALL_CHARACTER = config['DEFAULT']['CallCharacter']
 TWITCH_CLIENT_ID = config['DEFAULT']['TwitchClientID']
 TWITCH_CLIENT_SECRET = config['DEFAULT']['TwitchClientSecret']
+TWITCH_ANNOUNCEMENT_MESSAGE = config['DEFAULT']['TwitchAnnouncementMessage']
 
 
 def write_option(key, value):

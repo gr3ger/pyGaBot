@@ -3,6 +3,7 @@ DiscordToken = TOKEN_HERE
 CallCharacter = !
 TwitchClientID = CLIENT_ID_HERE
 TwitchClientSecret = CLIENT_SECRET_HERE
+TwitchAnnouncementMessage = @here {streamer} is live: {stream_description} <{stream_link}>
 
 [OPTIONS]
 TwitchIntegrationEnabled = False
