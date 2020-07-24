@@ -4,28 +4,28 @@ import configparser
 config = configparser.ConfigParser()
 config.read('config.ini')
 
-KEY_POLL_RATE = "TwitchPollRate"
 KEY_TWITCH_INTEGRATION = "TwitchIntegrationEnabled"
 KEY_TWITCH_CHANNEL = "TwitchChannel"
 KEY_ANNOUNCEMENT_CHANNEL = "announcementchannel"
 KEY_TWITCH_ACCESS_TOKEN = "twitchaccesstoken"
 
-DISCORD_TOKEN = config['DEFAULT']['DiscordToken']
-CALL_CHARACTER = config['DEFAULT']['CallCharacter']
-TWITCH_CLIENT_ID = config['DEFAULT']['TwitchClientID']
-TWITCH_CLIENT_SECRET = config['DEFAULT']['TwitchClientSecret']
-TWITCH_ANNOUNCEMENT_MESSAGE = config['DEFAULT']['TwitchAnnouncementMessage']
+DISCORD_TOKEN = config['DISCORD']['DiscordToken']
+CALL_CHARACTER = config['DISCORD']['CallCharacter']
+TWITCH_CLIENT_ID = config['TWITCH']['TwitchClientID']
+TWITCH_CLIENT_SECRET = config['TWITCH']['TwitchClientSecret']
+TWITCH_ANNOUNCEMENT_MESSAGE = config['TWITCH']['TwitchAnnouncementMessage']
+TWITCH_POLL_RATE = int(config['TWITCH']['TwitchPollRate'])
 
 
-def write_option(key, value):
-    config['OPTIONS'][key] = value
+def write_option(key, value, category="BOT_VARS"):
+    config[category][key] = value
     with open('config.ini', 'w') as configfile:
         config.write(configfile)
 
 
-def read_option(key, default):
+def read_option(key, default, category="BOT_VARS"):
     try:
-        return config["OPTIONS"][key]
+        return config[category][key]
     except KeyError:
         print("Key [{}] not found, using value {} instead.".format(key, default))
         return default

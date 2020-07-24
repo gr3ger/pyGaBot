@@ -16,7 +16,6 @@ class TwitchCog(commands.Cog, name="Twitch"):
         self.is_running = False
         self.abort = False
         self.was_previously_online = False
-        self.POLL_RATE = int(settings.read_option(settings.KEY_POLL_RATE, 60))
 
         if not self.is_running and settings.read_option(settings.KEY_TWITCH_INTEGRATION, "False") == "True":
             asyncio.create_task(self.poll_thread())
@@ -114,7 +113,7 @@ class TwitchCog(commands.Cog, name="Twitch"):
                 self.was_previously_online = is_online
             except Exception as e:
                 print(e)
-            await asyncio.sleep(self.POLL_RATE)
+            await asyncio.sleep(settings.TWITCH_POLL_RATE)
         print("Polling thread quit")
         self.abort = False
         self.is_running = False
