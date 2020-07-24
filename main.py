@@ -10,6 +10,7 @@ from discord.ext.commands import CommandNotFound
 import settings
 from poll_cog import PollCog
 from twitch_cog import TwitchCog
+from youtube_cog import YoutubeCog
 
 if sys.version_info < (3, 7):
     print("You are using Python version {major}.{minor}.{micro}, you need at least Python 3.7".format(
@@ -41,6 +42,7 @@ async def on_ready():
     print('We have logged in as {0.user}'.format(bot))
     bot.add_cog(PollCog(bot))
     bot.add_cog(TwitchCog(bot))
+    bot.add_cog(YoutubeCog(bot))
 
 
 @bot.event

@@ -109,7 +109,7 @@ class TwitchCog(commands.Cog, name="Twitch"):
                                     streamer=stream['user_name'],
                                     stream_link="https://twitch.tv/" + stream['user_name'],
                                     stream_description=stream['title']),
-                                int(settings.read_option(settings.KEY_ANNOUNCEMENT_CHANNEL, 0)))
+                                int(settings.read_option(settings.KEY_ANNOUNCEMENT_CHANNEL_TWITCH, 0)))
                 self.was_previously_online = is_online
             except Exception as e:
                 print(e)
@@ -147,7 +147,7 @@ class TwitchCog(commands.Cog, name="Twitch"):
             try:
                 print("Found userid: {}".format(user_json["data"][0]["id"]))
                 settings.write_option(settings.KEY_TWITCH_CHANNEL, user_json["data"][0]["display_name"])
-                settings.write_option(settings.KEY_ANNOUNCEMENT_CHANNEL, str(ctx.message.channel.id))
+                settings.write_option(settings.KEY_ANNOUNCEMENT_CHANNEL_TWITCH, str(ctx.message.channel.id))
                 settings.write_option(settings.KEY_TWITCH_INTEGRATION, "True")
                 await ctx.send(
                     "Successfully set the announcement channel to: {}, I will post here when {} comes online.".format(

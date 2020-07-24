@@ -1,2 +1,4 @@
 discord.py
 jsonpickle
+google-api-python-client
+python-dateutil

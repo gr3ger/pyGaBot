@@ -5,7 +5,12 @@ CallCharacter = !
 [TWITCH]
 TwitchClientID = CLIENT_ID_HERE
 TwitchClientSecret = CLIENT_SECRET_HERE
-TwitchAnnouncementMessage = @here {streamer} is live: {stream_description} <{stream_link}>
+AnnouncementMessage = @here {streamer} is live: {stream_description} <{stream_link}>
 TwitchPollRate = 60
+
+[YOUTUBE]
+GoogleApiKey = API_KEY_HERE
+YoutubePollRate = 600
+AnnouncementMessage = {title} - {url}
 
 [BOT_VARS]
