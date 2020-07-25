@@ -29,14 +29,6 @@ if os.path.isfile('custom_commands.bin'):
     custom_commands = pickle.load(open("custom_commands.bin", "rb"))
 
 
-@bot.command(hidden=True)
-@commands.has_any_role("Mods", "Admin")
-async def test(ctx):
-    """Developer test function"""
-    print(bot.all_commands.keys())
-    # print(jsonpickle.encode(bot.get_cog("Polls").pollList.polls))
-
-
 @bot.event
 async def on_ready():
     print('We have logged in as {0.user}'.format(bot))
