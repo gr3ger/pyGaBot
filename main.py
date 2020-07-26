@@ -53,15 +53,15 @@ async def addcommand(ctx, *args):
     """Adds a custom text command"""
 
     if args[0] in custom_commands:
-        await ctx.send("there is already a custom command named `{}`".format(args[0]), delete_after=3)
+        await ctx.send("there is already a custom command named `{}`".format(args[0]))
         return
     if args[0] in bot.all_commands.keys():
-        await ctx.send("there is already a native command named `{}`".format(args[0]), delete_after=3)
+        await ctx.send("there is already a native command named `{}`".format(args[0]))
         return
 
     value = " ".join(ctx.message.content.split(" ")[2:])
     if value == "":
-        await ctx.send("The value of the command cannot be empty".format(args[0]), delete_after=3)
+        await ctx.send("The value of the command cannot be empty".format(args[0]))
         return
 
     custom_commands[args[0]] = value
@@ -78,7 +78,7 @@ async def removecommand(ctx, key):
         await ctx.send("`{}` has been removed from the custom command list".format(key))
         pickle.dump(custom_commands, open("custom_commands.bin", "wb"))
     else:
-        await ctx.send("there is no custom command named `{}`".format(key), delete_after=3)
+        await ctx.send("there is no custom command named `{}`".format(key))
 
 
 @bot.command()
@@ -95,7 +95,7 @@ async def listcommands(ctx):
         output += "```"
         await ctx.send(output)
     else:
-        await ctx.send("There are currently no registered text commands", delete_after=3)
+        await ctx.send("There are currently no registered text commands")
 
 
 print("starting bot")
