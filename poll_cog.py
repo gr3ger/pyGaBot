@@ -130,30 +130,28 @@ class PollCog(commands.Cog, name="Polls"):
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
         print(payload)
-        if str(payload.channel_id) == settings.read_option(settings.KEY_ANNOUNCEMENT_CHANNEL, ""):
-            for poll in self.pollList.polls:
-                if poll.message_id == payload.message_id:
-                    # Allow the bot to do multiple votes
-                    if payload.user_id != self.bot.user.id and poll.has_already_voted(payload.user_id):
-                        user = self.bot.get_user(payload.user_id)
-                        channel = user.dm_channel
-                        if channel is None:
-                            channel = await user.create_dm()
-                        await channel.send(
-                            "You have already voted in this poll, please make sure you only have one vote to make it count.")
+        for poll in self.pollList.polls:
+            if poll.message_id == payload.message_id:
+                # Allow the bot to do multiple votes
+                if payload.user_id != self.bot.user.id and poll.has_already_voted(payload.user_id):
+                    user = self.bot.get_user(payload.user_id)
+                    channel = user.dm_channel
+                    if channel is None:
+                        channel = await user.create_dm()
+                    await channel.send(
+                        "You have already voted in this poll, please make sure you only have one vote to make it count.")
 
-                    poll.add_vote(PollCog.poll_emojis.index(payload.emoji.name), payload.user_id)
-                    pickle.dump(self.pollList, open("polls.bin", "wb"))
-                    await self.updatePollMessage(poll)
-                    break
+                poll.add_vote(PollCog.poll_emojis.index(payload.emoji.name), payload.user_id)
+                pickle.dump(self.pollList, open("polls.bin", "wb"))
+                await self.updatePollMessage(poll)
+                break
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload):
         print(payload)
-        if str(payload.channel_id) == settings.read_option(settings.KEY_ANNOUNCEMENT_CHANNEL, ""):
-            for poll in self.pollList.polls:
-                if poll.message_id == payload.message_id:
-                    poll.remove_vote(PollCog.poll_emojis.index(payload.emoji.name), payload.user_id)
-                    pickle.dump(self.pollList, open("polls.bin", "wb"))
-                    await self.updatePollMessage(poll)
-                    break
+        for poll in self.pollList.polls:
+            if poll.message_id == payload.message_id:
+                poll.remove_vote(PollCog.poll_emojis.index(payload.emoji.name), payload.user_id)
+                pickle.dump(self.pollList, open("polls.bin", "wb"))
+                await self.updatePollMessage(poll)
+                break
