@@ -35,6 +35,7 @@ KEY_CATEGORY_DISCORD = "DISCORD"
 
 DISCORD_TOKEN = config['DISCORD']['DiscordToken']
 CALL_CHARACTER = config['DISCORD']['CallCharacter']
+TWITCH_POLL_COOLDOWN = int(read_option("PollCooldown", str(60 * 60), category=KEY_CATEGORY_TWITCH))
 TWITCH_CLIENT_ID = config['TWITCH']['TwitchClientID']
 TWITCH_CLIENT_SECRET = config['TWITCH']['TwitchClientSecret']
 TWITCH_ANNOUNCEMENT_MESSAGE = config['TWITCH']['AnnouncementMessage']

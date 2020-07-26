@@ -13,12 +13,11 @@ import settings
 class TwitchCog(commands.Cog, name="Twitch"):
     def __init__(self, bot):
         self.bot = bot
-        self.is_running = False
-        self.abort = False
+        self.task = None
         self.was_previously_online = False
 
-        if not self.is_running and settings.read_option(settings.KEY_TWITCH_INTEGRATION, "False") == "True":
-            asyncio.create_task(self.poll_thread())
+        if self.task is None and settings.read_option(settings.KEY_TWITCH_INTEGRATION, "False") == "True":
+            self.task = asyncio.create_task(self.poll_thread())
 
     def get_twitch_user_by_name(self, usernames):
         try:
@@ -95,8 +94,8 @@ class TwitchCog(commands.Cog, name="Twitch"):
             return e
 
     async def poll_thread(self):
-        self.is_running = True
-        while not self.abort:
+        while True:
+            notification_sent = False
             try:
                 result_json = self.get_streams(settings.read_option(settings.KEY_TWITCH_CHANNEL, ""))
                 is_online = False
@@ -104,6 +103,7 @@ class TwitchCog(commands.Cog, name="Twitch"):
                     if stream["user_name"] == settings.read_option(settings.KEY_TWITCH_CHANNEL, ""):
                         is_online = True
                         if not self.was_previously_online:
+                            notification_sent = True
                             await self.send_message_to_channel(
                                 settings.TWITCH_ANNOUNCEMENT_MESSAGE.format(
                                     streamer=stream['user_name'],
@@ -113,10 +113,10 @@ class TwitchCog(commands.Cog, name="Twitch"):
                 self.was_previously_online = is_online
             except Exception as e:
                 print(e)
-            await asyncio.sleep(settings.TWITCH_POLL_RATE)
-        print("Polling thread quit")
-        self.abort = False
-        self.is_running = False
+            if notification_sent:
+                await asyncio.sleep(settings.TWITCH_POLL_COOLDOWN)
+            else:
+                await asyncio.sleep(settings.TWITCH_POLL_RATE)
 
     async def send_message_to_channel(self, string, channel_id: int):
         print("Sending announcement to channel {}".format(channel_id))
@@ -127,7 +127,9 @@ class TwitchCog(commands.Cog, name="Twitch"):
     @commands.has_any_role("Mods", "Admin")
     async def disabletwitch(self, ctx):
         """Stop sending twitch updates"""
-        self.abort = True
+        self.task.cancel()
+        self.task = None
+
         settings.write_option(settings.KEY_TWITCH_INTEGRATION, "False")
         await ctx.send("Twitch integration disabled")
 
@@ -153,9 +155,8 @@ class TwitchCog(commands.Cog, name="Twitch"):
                     "Successfully set the announcement channel to: {}, I will post here when {} comes online.".format(
                         ctx.message.channel.name, twitch_username))
 
-                if not self.is_running:
-                    self.abort = False
-                    asyncio.create_task(self.poll_thread())
+                if self.task is None:
+                    self.task = asyncio.create_task(self.poll_thread())
             except IndexError:
                 await ctx.send("Could not find user {}".format(twitch_username))
             except Exception as e:

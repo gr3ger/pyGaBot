@@ -15,18 +15,18 @@ class YoutubeCog(commands.Cog, name="Youtube"):
 
     def __init__(self, bot):
         self.bot = bot
-        self.is_running = False
-        self.abort = False
+        self.task = None
         self.yt = googleapiclient.discovery.build("youtube", "v3", developerKey=settings.GOOGLE_API_KEY)
 
-        if not self.is_running and settings.read_option(settings.KEY_YOUTUBE_INTEGRATION, "False") == "True":
-            asyncio.create_task(self.poll_thread())
+        if self.task is None and settings.read_option(settings.KEY_YOUTUBE_INTEGRATION, "False") == "True":
+            self.task = asyncio.create_task(self.poll_thread())
 
     @commands.command()
     @commands.has_any_role("Mods", "Admin")
     async def disableyoutube(self, ctx):
         """Stop sending twitch updates"""
-        self.abort = True
+        self.task.cancel()
+        self.task = None
         settings.write_option(settings.KEY_TWITCH_INTEGRATION, "False")
         await ctx.send("Twitch integration disabled")
 
@@ -53,9 +53,8 @@ class YoutubeCog(commands.Cog, name="Youtube"):
                     "Successfully set the announcement channel to: {}, I will post here when {} posts a video.".format(
                         ctx.message.channel.name, username))
 
-                if not self.is_running:
-                    self.abort = False
-                    asyncio.create_task(self.poll_thread())
+                if self.task is None:
+                    self.task = asyncio.create_task(self.poll_thread())
             except Exception as e:
                 await ctx.send(str(e))
         else:
@@ -78,8 +77,7 @@ class YoutubeCog(commands.Cog, name="Youtube"):
             return e
 
     async def poll_thread(self):
-        self.is_running = True
-        while not self.abort:
+        while True:
             try:
                 response = self.yt.activities().list(part="snippet,contentDetails",
                                                      channelId=settings.read_option(settings.KEY_YOUTUBE_CHANNEL_ID),
@@ -103,9 +101,6 @@ class YoutubeCog(commands.Cog, name="Youtube"):
             except Exception as e:
                 print(e)
             await asyncio.sleep(settings.YOUTUBE_POLL_RATE)
-        print("Polling thread quit")
-        self.abort = False
-        self.is_running = False
 
     async def send_message_to_channel(self, string, channel_id: int):
         print("sending: {}".format(string))
