@@ -114,7 +114,7 @@ class TwitchCog(commands.Cog, name="Twitch"):
             except Exception as e:
                 print(e)
             if notification_sent:
-                await asyncio.sleep(settings.TWITCH_POLL_COOLDOWN)
+                await asyncio.sleep(settings.TWITCH_POLL_COOLDOWN_MINUTES * 60)
             else:
                 await asyncio.sleep(settings.TWITCH_POLL_RATE)
 

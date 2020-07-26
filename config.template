@@ -7,7 +7,7 @@ TwitchClientID = CLIENT_ID_HERE
 TwitchClientSecret = CLIENT_SECRET_HERE
 AnnouncementMessage = @here {streamer} is live: {stream_description} <{stream_link}>
 TwitchPollRate = 60
-PollCooldown = 3600
+PollCooldownMinutes = 300
 
 [YOUTUBE]
 GoogleApiKey = API_KEY_HERE
