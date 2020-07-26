@@ -24,16 +24,16 @@ class YoutubeCog(commands.Cog, name="Youtube"):
     @commands.command()
     @commands.has_any_role("Mods", "Admin")
     async def disableyoutube(self, ctx):
-        """Stop sending twitch updates"""
+        """Stop sending youtube updates"""
         self.task.cancel()
         self.task = None
-        settings.write_option(settings.KEY_TWITCH_INTEGRATION, "False")
-        await ctx.send("Twitch integration disabled")
+        settings.write_option(settings.KEY_YOUTUBE_INTEGRATION, "False")
+        await ctx.send("Youtube integration disabled")
 
     @commands.command()
     @commands.has_any_role("Mods", "Admin")
     async def enableyoutube(self, ctx, username):
-        """Send twitch updates to this channel"""
+        """Send youtube updates to this channel"""
         print(str(ctx.message.channel.id))
         if isinstance(ctx.message.channel, discord.TextChannel):
             user_json = self.get_youtube_user_by_name(username)
@@ -64,7 +64,7 @@ class YoutubeCog(commands.Cog, name="Youtube"):
     @enableyoutube.error
     async def enableyoutube_error(self, ctx, error):
         if isinstance(error, commands.UserInputError):
-            await ctx.send('Usage: `{}enabletwitch <twitch_channel_name>` '
+            await ctx.send('Usage: `{}enableyoutube <youtube_channel_name>` '
                            '\nIt must be used in a regular channel so it knows where to post announcements.'
                            .format(settings.CALL_CHARACTER))
 
