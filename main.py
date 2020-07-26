@@ -82,7 +82,7 @@ async def removecommand(ctx, key):
 
 
 @bot.command()
-async def textcommands(ctx):
+async def listcommands(ctx):
     """Lists all custom text commands"""
     output = "```"
     for key in custom_commands:
