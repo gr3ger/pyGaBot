@@ -82,6 +82,16 @@ async def removecommand(ctx, key):
 
 
 @bot.command()
+@commands.has_any_role("Mods", "Admin")
+async def listorphans(ctx):
+    """Lists users that has no roles"""
+    members = ctx.guild.members
+    # I think everyone has the "everyone" roles no matter server config, so check if <= 1
+    filtered_list = list(map(lambda m: m.display_name, filter(lambda m: len(m.roles) <= 1, members)))
+    await ctx.send("there are {} users with no role:\n{}".format(len(filtered_list), ", ".join(filtered_list)))
+
+
+@bot.command()
 async def listcommands(ctx):
     """Lists all custom text commands"""
     output = "```"
