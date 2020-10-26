@@ -1,5 +1,6 @@
 # pyGaBot
 A rewrite of GaBot in python3 (minimum python 3.7 required)
+As of right now it is not sharded since we're using it for a specific discord server, and because of this it is pretty much made for only running at one server at a time.
 
 ## Building
 1. `pip install -r requirements.txt`
