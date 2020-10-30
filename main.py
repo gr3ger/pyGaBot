@@ -4,6 +4,7 @@ import pickle
 import sys
 from os.path import exists
 
+import discord
 from discord.ext import commands
 from discord.ext.commands import CommandNotFound
 
@@ -22,7 +23,7 @@ if not exists("config.ini"):
     exit()
 
 async_loop = asyncio.get_event_loop()
-bot = commands.Bot(command_prefix=settings.CALL_CHARACTER)
+bot = commands.Bot(command_prefix=settings.CALL_CHARACTER, intents=discord.Intents(messages=True, guilds=True, members=True))
 custom_commands = {}
 
 if os.path.isfile('custom_commands.bin'):
