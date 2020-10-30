@@ -83,12 +83,23 @@ async def removecommand(ctx, key):
 
 @bot.command()
 @commands.has_any_role("Mods", "Admin")
-async def listorphans(ctx):
+async def prune(ctx, arg1='list'):
     """Lists users that has no roles"""
     members = ctx.guild.members
     # I think everyone has the "everyone" roles no matter server config, so check if <= 1
-    filtered_list = list(map(lambda m: m.display_name, filter(lambda m: len(m.roles) <= 1, members)))
-    await ctx.send("there are {} users with no role:\n{}".format(len(filtered_list), ", ".join(filtered_list)))
+    no_roles_list = list(filter(lambda m: len(m.roles) <= 1, members))
+    name_list = list(map(lambda m: m.display_name, no_roles_list))
+    if len(name_list) == 0:
+        await ctx.send("there are no users without roles")
+    elif arg1.lower() == 'kick':
+        for member in no_roles_list:
+            await member.kick()
+        await ctx.send("Kicked {} users".format(len(name_list)))
+    else:
+        await ctx.send(
+            "there are {} users with no role:\n{}\nShould I kick them? use `{}prune kick`".format(len(name_list),
+                                                                                                  ", ".join(name_list),
+                                                                                                  bot.command_prefix))
 
 
 @bot.command()

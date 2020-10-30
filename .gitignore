@@ -3,3 +3,4 @@ config.ini
 /client_data.sqlite3
 /polls.bin
 /custom_commands.bin
+__pycache__
