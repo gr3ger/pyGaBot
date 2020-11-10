@@ -23,7 +23,8 @@ if not exists("config.ini"):
     exit()
 
 async_loop = asyncio.get_event_loop()
-bot = commands.Bot(command_prefix=settings.CALL_CHARACTER, intents=discord.Intents(messages=True, guilds=True, members=True))
+bot = commands.Bot(command_prefix=settings.CALL_CHARACTER,
+                   intents=discord.Intents(messages=True, guilds=True, members=True))
 custom_commands = {}
 
 if os.path.isfile('custom_commands.bin'):
@@ -84,6 +85,8 @@ async def removecommand(ctx, key):
 
 @bot.command()
 @commands.has_any_role("Mods", "Admin")
+@commands.has_permissions(kick_members=True)  # Can user kick?
+@commands.bot_has_permissions(kick_members=True)  # Can bot kick?
 async def prune(ctx, arg1='list'):
     """Lists users that has no roles"""
     members = ctx.guild.members
