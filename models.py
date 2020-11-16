@@ -1,0 +1,32 @@
+import datetime
+
+from peewee import Model, SqliteDatabase, TextField, IntegerField, DateTimeField
+
+db = SqliteDatabase('gabot.db')
+
+
+class BaseModel(Model):
+    class Meta:
+        database = db
+
+
+class TwitchSettings(BaseModel):
+    guild_id = IntegerField(primary_key=True)
+    hook_uuid = TextField()
+    twitch_channel = TextField()
+    announcement_channel = TextField()
+    announcement_template = TextField(default="@here {streamer} is live: {stream_description} <{stream_link}>")
+    cooldown_minutes = IntegerField(default=300)
+
+
+class YoutubeSettings(BaseModel):
+    guild_id = IntegerField(primary_key=True)
+    youtube_channel = TextField()
+    announcement_channel = TextField()
+    announcement_template = TextField(default="{title} - {url}")
+    last_update = DateTimeField(default=datetime.datetime.now)
+
+
+def initialize():
+    db.connect()
+    db.create_tables([TwitchSettings, YoutubeSettings])

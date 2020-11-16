@@ -8,6 +8,7 @@ import discord
 from discord.ext import commands
 from discord.ext.commands import CommandNotFound
 
+import models
 import settings
 from poll_cog import PollCog
 from twitch_cog import TwitchCog
@@ -29,6 +30,8 @@ custom_commands = {}
 
 if os.path.isfile('custom_commands.bin'):
     custom_commands = pickle.load(open("custom_commands.bin", "rb"))
+
+models.initialize()
 
 
 @bot.event
@@ -81,6 +84,22 @@ async def removecommand(ctx, key):
         pickle.dump(custom_commands, open("custom_commands.bin", "wb"))
     else:
         await ctx.send("there is no custom command named `{}`".format(key))
+
+
+@bot.command()
+@commands.has_any_role("Mods", "Admin")
+async def migrate(ctx):
+    """Migrates from prefs to sqlite"""
+    guild_id = ctx.guild.id
+    twitch_settings, _ = models.TwitchSettings.get_or_create(guild_id=guild_id)
+    twitch_settings.twitch_channel = settings.read_option(settings.KEY_TWITCH_CHANNEL, "")
+    twitch_settings.announcement_channel = settings.read_option(settings.KEY_ANNOUNCEMENT_CHANNEL_TWITCH, "")
+    twitch_settings.save()
+
+    yt_settings, _ = models.YoutubeSettings.get_or_create(guild_id=guild_id)
+    yt_settings.youtube_channel = settings.read_option(settings.KEY_YOUTUBE_CHANNEL_ID, "")
+    yt_settings.announcement_channel = settings.read_option(settings.KEY_ANNOUNCEMENT_CHANNEL_YOUTUBE, "")
+    yt_settings.save()
 
 
 @bot.command()

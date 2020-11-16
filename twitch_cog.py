@@ -1,122 +1,41 @@
-import asyncio
-import http
-import json
 import sys
-from http.client import HTTPSConnection
+import urllib.request
 
 import discord
 from discord.ext import commands
+from twitchAPI import Twitch, TwitchWebHook
 
 import settings
+from models import TwitchSettings
 
 
 class TwitchCog(commands.Cog, name="Twitch"):
+    twitch = Twitch(settings.TWITCH_CLIENT_ID, settings.TWITCH_CLIENT_SECRET)
+
     def __init__(self, bot):
         self.bot = bot
         self.task = None
         self.was_previously_online = False
 
-        if self.task is None and settings.read_option(settings.KEY_TWITCH_INTEGRATION, "False") == "True":
-            self.task = asyncio.create_task(self.poll_thread())
+        self.twitch.authenticate_app([])
+        webhook_callback_address = 'https://' + urllib.request.urlopen('https://ident.me').read().decode(
+            'utf8') + ':5001'
+        print(webhook_callback_address)
+        self.hook = TwitchWebHook(webhook_callback_address,
+                                  settings.TWITCH_CLIENT_ID, 5000)
+        self.hook.authenticate(self.twitch)
+        self.hook.start()
 
     def get_twitch_user_by_name(self, usernames):
         try:
-            if isinstance(usernames, list):
-                usernames = ['login={0}'.format(i) for i in usernames]
-                req = '/helix/users?' + '&'.join(usernames)
-            else:
-                req = '/helix/users?login=' + usernames
-
-            print(req)
-
-            connection = http.client.HTTPSConnection('api.twitch.tv', timeout=10)
-            connection.request('GET', req, None, headers={
-                'Authorization': "Bearer " + settings.read_option(settings.KEY_TWITCH_ACCESS_TOKEN, ""),
-                'client-id': settings.TWITCH_CLIENT_ID})
-            response = connection.getresponse()
-
-            print("{}: {} {}".format(req, response.status, response.reason))
-            if response.status == 401:
-                self.get_access_token()
-                return self.get_twitch_user_by_name(usernames)
-            re = response.read().decode()
-            j = json.loads(re)
-            return j
+            return self.twitch.get_users(logins=usernames)
         except Exception as e:
             print(e, file=sys.stderr)
             return e
 
-    def get_access_token(self):
-        try:
-            print("Attempting to get access token")
-            connect_string = "/oauth2/token?client_id={client_id}" \
-                             "&client_secret={client_secret}" \
-                             "&grant_type=client_credentials".format(client_id=settings.TWITCH_CLIENT_ID,
-                                                                     client_secret=settings.TWITCH_CLIENT_SECRET)
-            auth_connection = http.client.HTTPSConnection('id.twitch.tv', timeout=10)
-            auth_connection.request('POST', connect_string, None)
-            response = auth_connection.getresponse()
-            print("{}: {} {}".format(connect_string, response.status, response.reason))
-            re = response.read().decode()
-            j = json.loads(re)
-            print(j)
-            settings.write_option(settings.KEY_TWITCH_ACCESS_TOKEN, j["access_token"])
-            return j
-        except Exception as e:
-            print(e, file=sys.stderr)
-            return e
-
-    def get_streams(self, usernames):
-        try:
-            if isinstance(usernames, list):
-                usernames = ['user_login={0}'.format(i) for i in usernames]
-                req = '/helix/streams?' + '&'.join(usernames)
-            else:
-                req = '/helix/streams?user_login=' + usernames
-
-            connection = http.client.HTTPSConnection('api.twitch.tv', timeout=10)
-            connection.request('GET', req, None, headers={
-                'Authorization': "Bearer " + settings.read_option(settings.KEY_TWITCH_ACCESS_TOKEN, ""),
-                'client-id': settings.TWITCH_CLIENT_ID
-            })
-            response = connection.getresponse()
-            print("{}: {} {}".format(req, response.status, response.reason))
-
-            if response.status == 401:
-                self.get_access_token()
-                return self.get_streams(usernames)
-
-            re = response.read().decode()
-            j = json.loads(re)
-            return j
-        except Exception as e:
-            print(e, file=sys.stderr)
-            return e
-
-    async def poll_thread(self):
-        while True:
-            notification_sent = False
-            try:
-                result_json = self.get_streams(settings.read_option(settings.KEY_TWITCH_CHANNEL, ""))
-                is_online = False
-                for stream in result_json["data"]:
-                    if stream["user_name"] == settings.read_option(settings.KEY_TWITCH_CHANNEL, ""):
-                        is_online = True
-                        if not self.was_previously_online:
-                            notification_sent = True
-                            await self.send_message_to_channel(
-                                settings.TWITCH_ANNOUNCEMENT_MESSAGE.format(
-                                    streamer=stream['user_name'],
-                                    stream_link="https://twitch.tv/" + stream['user_name'],
-                                    stream_description=stream['title']),
-                                int(settings.read_option(settings.KEY_ANNOUNCEMENT_CHANNEL_TWITCH, 0)))
-                self.was_previously_online = is_online
-            except Exception as e:
-                print(e)
-            if notification_sent:
-                await asyncio.sleep(settings.TWITCH_POLL_COOLDOWN_MINUTES * 60)
-            else:
-                await asyncio.sleep(settings.TWITCH_POLL_RATE)
+    def callback_stream_changed(self, uuid, data):
+        print('Callback Stream changed for UUID ' + str(uuid))
+        print(data)
 
     async def send_message_to_channel(self, string, channel_id: int):
         print("Sending announcement to channel {}".format(channel_id))
@@ -127,16 +46,22 @@ class TwitchCog(commands.Cog, name="Twitch"):
     @commands.has_any_role("Mods", "Admin")
     async def disabletwitch(self, ctx):
         """Stop sending twitch updates"""
-        self.task.cancel()
-        self.task = None
-
-        settings.write_option(settings.KEY_TWITCH_INTEGRATION, "False")
-        await ctx.send("Twitch integration disabled")
+        current_sub = TwitchSettings.get(guild_id=ctx.guild.id)
+        if current_sub is not None:
+            success = self.hook.unsubscribe(current_sub.hook_uuid)
+            if success:
+                current_sub.delete_instance()
+                await ctx.send("Successfully unsubscribed from twitch updates")
+            else:
+                await ctx.send("Failed to unsubscribe from twitch")
+        else:
+            await ctx.send("You don't seem to be subscribed for any twitch updates")
 
     @commands.command()
     @commands.has_any_role("Mods", "Admin")
     async def enabletwitch(self, ctx, twitch_username):
         """Send twitch updates to this channel"""
+
         print(str(ctx.message.channel.id))
         if isinstance(ctx.message.channel, discord.TextChannel):
             user_json = self.get_twitch_user_by_name(twitch_username)
@@ -148,15 +73,20 @@ class TwitchCog(commands.Cog, name="Twitch"):
 
             try:
                 print("Found userid: {}".format(user_json["data"][0]["id"]))
-                settings.write_option(settings.KEY_TWITCH_CHANNEL, user_json["data"][0]["display_name"])
-                settings.write_option(settings.KEY_ANNOUNCEMENT_CHANNEL_TWITCH, str(ctx.message.channel.id))
-                settings.write_option(settings.KEY_TWITCH_INTEGRATION, "True")
-                await ctx.send(
-                    "Successfully set the announcement channel to: {}, I will post here when {} comes online.".format(
-                        ctx.message.channel.name, twitch_username))
-
-                if self.task is None:
-                    self.task = asyncio.create_task(self.poll_thread())
+                success, uuid = self.hook.subscribe_stream_changed(user_id=user_json["data"][0]["id"],
+                                                                   callback_func=self.callback_stream_changed)
+                print("hook: {}, uuid: {}".format(success, uuid))
+                if success:
+                    twitch_settings, _ = TwitchSettings.get_or_create(guild_id=ctx.guild.id)
+                    twitch_settings.twitch_channel = str(user_json["data"][0]["id"])
+                    twitch_settings.announcement_channel = str(ctx.message.channel.id)
+                    twitch_settings.hook_uuid = uuid
+                    twitch_settings.save()
+                    await ctx.send(
+                        "Successfully set the announcement channel to: {}, I will post here when {} comes online.".format(
+                            ctx.message.channel.name, twitch_username))
+                else:
+                    await ctx.send("Failed to create a webhook, notify the bot administrator")
             except IndexError:
                 await ctx.send("Could not find user {}".format(twitch_username))
             except Exception as e:

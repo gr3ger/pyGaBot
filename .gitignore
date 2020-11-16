@@ -4,3 +4,4 @@ config.ini
 /polls.bin
 /custom_commands.bin
 __pycache__
+gabot.db
