@@ -12,17 +12,17 @@ class BaseModel(Model):
 
 class TwitchSettings(BaseModel):
     guild_id = IntegerField(primary_key=True)
-    hook_uuid = TextField()
-    twitch_channel = TextField()
-    announcement_channel = TextField()
+    hook_uuid = TextField(default="")
+    twitch_channel = TextField(default="")
+    announcement_channel = TextField(default="")
     announcement_template = TextField(default="@here {streamer} is live: {stream_description} <{stream_link}>")
     cooldown_minutes = IntegerField(default=300)
 
 
 class YoutubeSettings(BaseModel):
     guild_id = IntegerField(primary_key=True)
-    youtube_channel = TextField()
-    announcement_channel = TextField()
+    youtube_channel = TextField(default="")
+    announcement_channel = TextField(default="")
     announcement_template = TextField(default="{title} - {url}")
     last_update = DateTimeField(default=datetime.datetime.now)
 
