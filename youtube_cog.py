@@ -20,20 +20,56 @@ class YoutubeCog(commands.Cog, name="Youtube"):
         self.yt = googleapiclient.discovery.build("youtube", "v3", developerKey=settings.GOOGLE_API_KEY)
         self.task = asyncio.create_task(self.poll_thread())
 
-    @commands.command()
     @commands.has_any_role("Mods", "Admin")
-    async def disableyoutube(self, ctx):
+    @commands.group()
+    async def youtube(self, ctx):
+        """Youtube integration (!help youtube)"""
+        if ctx.invoked_subcommand is None:
+            await ctx.send("Use `!help youtube` for more info")
+
+    # noinspection PyStringFormat
+    @youtube.command()
+    @commands.has_any_role("Mods", "Admin")
+    async def template(self, ctx, arg):
+        """Change the post template used in discord
+        example: !youtube template "New video is out! {title} - <{url}>"
+        Surround your text with quotes when changing, otherwise only the first word will be visible.
+
+        Default value: "{title} - {url}"
+        Possible arguments: title, url
+        """
+        current_sub = YoutubeSettings.get_or_none(guild_id=ctx.guild.id)
+        if current_sub is not None:
+            current_sub.announcement_template = arg
+            current_sub.save()
+            await ctx.send("Template changed, this is what it will look like:\n\n{}".format(
+                current_sub.announcement_template.format(title="My cool video",
+                                                         url="http://www.google.com"), ))
+        else:
+            await ctx.send("You currently don't have any Youtube integration, so setting a template won't do anything.")
+
+    @template.error
+    async def template_error(self, ctx, error):
+        current_sub = YoutubeSettings.get_or_none(guild_id=ctx.guild.id)
+        if isinstance(error, commands.MissingRequiredArgument) and current_sub is not None:
+            await ctx.send("Current template: `\"{}\"`".format(current_sub.announcement_template))
+        else:
+            await ctx.send("use `{}help youtube template` for instructions".format(settings.CALL_CHARACTER))
+
+    @youtube.command()
+    @commands.has_any_role("Mods", "Admin")
+    async def disable(self, ctx):
         """Stop sending youtube updates"""
-        current_sub = YoutubeSettings.get(guild_id=ctx.guild.id)
+        current_sub = YoutubeSettings.get_or_none(guild_id=ctx.guild.id)
         if current_sub is not None:
             current_sub.delete_instance()
             await ctx.send("Youtube integration disabled")
         else:
             await ctx.send("You currently don't have any Youtube integrations")
 
-    @commands.command()
+    @youtube.command()
     @commands.has_any_role("Mods", "Admin")
-    async def enableyoutube(self, ctx, username):
+    async def enable(self, ctx, username):
         """Send youtube updates to this channel"""
         print(str(ctx.message.channel.id))
 
@@ -48,6 +84,10 @@ class YoutubeCog(commands.Cog, name="Youtube"):
             print(user_json)
 
             try:
+                if user_json["pageInfo"]["totalResults"] == 0:
+                    await ctx.send("Could not find that youtube channel")
+                    return
+
                 print("Found {} with userid {}".format(user_json["items"][0]["snippet"]["title"],
                                                        user_json["items"][0]["id"]))
                 yt_settings.youtube_channel = str(user_json["items"][0]["id"])
@@ -57,13 +97,13 @@ class YoutubeCog(commands.Cog, name="Youtube"):
                     "Successfully set the announcement channel to: {}, I will post here when {} posts a video.".format(
                         ctx.message.channel.name, username))
             except Exception as e:
-                await ctx.send("Something went wrong, contact the developer with this error: " + e)
+                await ctx.send("Something went wrong, contact the developer with this error: " + str(e))
         else:
             await ctx.send("Needs to be done in a regular channel")
             return
 
-    @enableyoutube.error
-    async def enableyoutube_error(self, ctx, error):
+    @enable.error
+    async def enable_error(self, ctx, error):
         if isinstance(error, commands.UserInputError):
             await ctx.send('Usage: `{}enableyoutube <youtube_channel_name>` '
                            '\nIt must be used in a regular channel so it knows where to post announcements.'

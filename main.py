@@ -10,7 +10,6 @@ from discord.ext.commands import CommandNotFound
 
 import models
 import settings
-from poll_cog import PollCog
 from twitch_cog import TwitchCog
 from youtube_cog import YoutubeCog
 
@@ -37,7 +36,8 @@ models.initialize()
 @bot.event
 async def on_ready():
     print('We have logged in as {0.user}'.format(bot))
-    bot.add_cog(PollCog(bot))
+    # Need to finish the poll cog before implementing
+    # bot.add_cog(PollCog(bot))
     bot.add_cog(TwitchCog(bot))
     bot.add_cog(YoutubeCog(bot))
 
