@@ -9,7 +9,6 @@ from discord.ext import commands
 from discord.ext.commands import CommandNotFound
 
 import settings
-from poll_cog import PollCog
 from twitch_cog import TwitchCog
 from youtube_cog import YoutubeCog
 
@@ -24,8 +23,9 @@ if not exists("config.ini"):
 
 async_loop = asyncio.get_event_loop()
 bot = commands.Bot(command_prefix=settings.CALL_CHARACTER,
-                   intents=discord.Intents(messages=True, guilds=True, members=True))
+                   intents=discord.Intents(messages=True, guilds=True, members=True, reactions=True))
 custom_commands = {}
+prune_messages = {}
 
 if os.path.isfile('custom_commands.bin'):
     custom_commands = pickle.load(open("custom_commands.bin", "rb"))
@@ -34,7 +34,7 @@ if os.path.isfile('custom_commands.bin'):
 @bot.event
 async def on_ready():
     print('We have logged in as {0.user}'.format(bot))
-    bot.add_cog(PollCog(bot))
+    # bot.add_cog(PollCog(bot))
     bot.add_cog(TwitchCog(bot))
     bot.add_cog(YoutubeCog(bot))
 
@@ -47,6 +47,22 @@ async def on_command_error(ctx, error):
             await ctx.send(custom_commands[command])
         return
     raise error
+
+
+@bot.event
+async def on_reaction_add(reaction, user):
+    if user.bot:
+        return
+
+    if reaction.message.id in prune_messages:
+        if reaction.emoji == '👎':
+            await reaction.message.delete()
+            del prune_messages[reaction.message.id]
+        elif reaction.emoji == '👍':
+            for member in prune_messages[reaction.message.id]:
+                await member.kick()
+            await reaction.message.channel.send("Kicked {} users".format(len(prune_messages[reaction.message.id])))
+            del prune_messages[reaction.message.id]
 
 
 @bot.command()
@@ -87,7 +103,7 @@ async def removecommand(ctx, key):
 @commands.has_any_role("Mods", "Admin")
 @commands.has_permissions(kick_members=True)  # Can user kick?
 @commands.bot_has_permissions(kick_members=True)  # Can bot kick?
-async def prune(ctx, arg1='list'):
+async def prune(ctx):
     """Lists users that has no roles"""
     members = ctx.guild.members
     # I think everyone has the "everyone" roles no matter server config, so check if <= 1
@@ -95,15 +111,15 @@ async def prune(ctx, arg1='list'):
     name_list = list(map(lambda m: m.display_name, no_roles_list))
     if len(name_list) == 0:
         await ctx.send("there are no users without roles")
-    elif arg1.lower() == 'kick':
-        for member in no_roles_list:
-            await member.kick()
-        await ctx.send("Kicked {} users".format(len(name_list)))
     else:
-        await ctx.send(
-            "there are {} users with no role:\n{}\nShould I kick them? use `{}prune kick`".format(len(name_list),
-                                                                                                  ", ".join(name_list),
-                                                                                                  bot.command_prefix))
+        sent_message = await ctx.send(
+            "there are {} users with no role:\n{}\nShould I kick them? use the reactions below".format(len(name_list),
+                                                                                                       ", ".join(
+                                                                                                           name_list)))
+        await sent_message.add_reaction("👍")
+        await sent_message.add_reaction("👎")
+        prune_messages[sent_message.id] = no_roles_list
+        print(prune_messages[sent_message.id])
 
 
 @bot.command()
