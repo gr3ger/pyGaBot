@@ -107,6 +107,12 @@ async def prune(ctx, arg1='list'):
 
 
 @bot.command()
+async def avatar(ctx):
+    """Show off your avatar in current channel"""
+    await ctx.send(ctx.message.author.avatar_url)
+
+
+@bot.command()
 async def listcommands(ctx):
     """Lists all custom text commands"""
     output = "```"
