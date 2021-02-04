@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import pickle
 import sys
@@ -49,7 +50,16 @@ async def on_command_error(ctx, error):
         if command in custom_commands:
             await ctx.send(custom_commands[command])
         return
+    elif isinstance(error, discord.ext.commands.errors.BotMissingPermissions):
+        await ctx.send(error)
     raise error
+
+
+@bot.event
+async def on_message(message):
+    if message.author.id == bot.user.id:
+        return
+    await bot.process_commands(message)
 
 
 @bot.command()
@@ -94,25 +104,34 @@ async def migrate(ctx):
 
 @bot.command()
 @commands.has_any_role("Mods", "Admin")
-@commands.has_permissions(kick_members=True)  # Can user kick?
-@commands.bot_has_permissions(kick_members=True)  # Can bot kick?
-async def prune(ctx, arg1='list'):
+# @commands.has_permissions(kick_members=True)  # Can user kick?
+# @commands.bot_has_permissions(kick_members=True)  # Can bot kick?
+async def prune(ctx):
     """Lists users that has no roles"""
     members = ctx.guild.members
     # I think everyone has the "everyone" roles no matter server config, so check if <= 1
     no_roles_list = list(filter(lambda m: len(m.roles) <= 1, members))
+    id_list = list(map(lambda m: m.id, no_roles_list))
     name_list = list(map(lambda m: m.display_name, no_roles_list))
     if len(name_list) == 0:
-        await ctx.send("there are no users without roles")
-    elif arg1.lower() == 'kick':
-        for member in no_roles_list:
-            await member.kick()
-        await ctx.send("Kicked {} users".format(len(name_list)))
+        msg_response = await ctx.send("there are no users without roles")
     else:
-        await ctx.send(
-            "there are {} users with no role:\n{}\nShould I kick them? use `{}prune kick`".format(len(name_list),
-                                                                                                  ", ".join(name_list),
-                                                                                                  bot.command_prefix))
+        msg_response = await ctx.send(
+            "there are {} users with no role:\n{}\nRespond with `yes` or `no` if you want me to kick them.".format(
+                len(name_list),
+                ", ".join(name_list)))
+
+        queue_item, _ = models.QueueItem.create()
+        queue_item.user = ctx.author.id
+        queue_item.channel = ctx.channel.id
+        queue_item.type = "kick"
+        queue_item.data = json.dumps(id_list)
+        queue_item.related_message = msg_response.id
+        queue_item.save()
+        # elif arg1.lower() == 'kick':
+        #     for member in no_roles_list:
+        #         await member.kick()
+        #     await ctx.send("Kicked {} users".format(len(name_list)))
 
 
 @bot.command()

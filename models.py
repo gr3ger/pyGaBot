@@ -24,7 +24,16 @@ class YoutubeSettings(BaseModel):
     youtube_channel = TextField(default="")
     announcement_channel = TextField(default="")
     announcement_template = TextField(default="{title} - {url}")
-    last_update = DateTimeField(default=datetime.datetime.now)
+    last_update = DateTimeField(default=(datetime.datetime.now() + datetime.timedelta(minutes=5)))
+
+
+class QueueItem(BaseModel):
+    type = TextField(default="")
+    user = IntegerField(default=0)
+    channel = IntegerField(default=0)
+    related_message = IntegerField(default=0)
+    data = TextField(default="")
+    expires = DateTimeField(default=datetime.datetime.now)
 
 
 def initialize():
