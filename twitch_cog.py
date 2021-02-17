@@ -14,7 +14,6 @@ class TwitchCog(commands.Cog, name="Twitch"):
     def __init__(self, bot):
         self.bot = bot
         self.task = None
-        self.was_previously_online = False
 
         if self.task is None and settings.read_option(settings.KEY_TWITCH_INTEGRATION, "False") == "True":
             self.task = asyncio.create_task(self.poll_thread())
@@ -35,7 +34,7 @@ class TwitchCog(commands.Cog, name="Twitch"):
                 'client-id': settings.TWITCH_CLIENT_ID})
             response = connection.getresponse()
 
-            print("{}: {} {}".format(req, response.status, response.reason))
+            print("Twitch: {}: {} {}".format(req, response.status, response.reason))
             if response.status == 401:
                 self.get_access_token()
                 return self.get_twitch_user_by_name(usernames)
@@ -48,7 +47,7 @@ class TwitchCog(commands.Cog, name="Twitch"):
 
     def get_access_token(self):
         try:
-            print("Attempting to get access token")
+            print("Twitch: Attempting to get access token")
             connect_string = "/oauth2/token?client_id={client_id}" \
                              "&client_secret={client_secret}" \
                              "&grant_type=client_credentials".format(client_id=settings.TWITCH_CLIENT_ID,
@@ -56,7 +55,7 @@ class TwitchCog(commands.Cog, name="Twitch"):
             auth_connection = http.client.HTTPSConnection('id.twitch.tv', timeout=10)
             auth_connection.request('POST', connect_string, None)
             response = auth_connection.getresponse()
-            print("{}: {} {}".format(connect_string, response.status, response.reason))
+            print("Twitch: {}: {} {}".format(connect_string, response.status, response.reason))
             re = response.read().decode()
             j = json.loads(re)
             print(j)
@@ -80,7 +79,7 @@ class TwitchCog(commands.Cog, name="Twitch"):
                 'client-id': settings.TWITCH_CLIENT_ID
             })
             response = connection.getresponse()
-            print("{}: {} {}".format(req, response.status, response.reason))
+            print("Twitch: {}: {} {}".format(req, response.status, response.reason))
 
             if response.status == 401:
                 self.get_access_token()
@@ -94,6 +93,7 @@ class TwitchCog(commands.Cog, name="Twitch"):
             return e
 
     async def poll_thread(self):
+        was_previously_online = False
         while True:
             notification_sent = False
             try:
@@ -102,7 +102,7 @@ class TwitchCog(commands.Cog, name="Twitch"):
                 for stream in result_json["data"]:
                     if stream["user_name"] == settings.read_option(settings.KEY_TWITCH_CHANNEL, ""):
                         is_online = True
-                        if not self.was_previously_online:
+                        if not was_previously_online:
                             notification_sent = True
                             await self.send_message_to_channel(
                                 settings.TWITCH_ANNOUNCEMENT_MESSAGE.format(
@@ -110,10 +110,12 @@ class TwitchCog(commands.Cog, name="Twitch"):
                                     stream_link="https://twitch.tv/" + stream['user_name'],
                                     stream_description=stream['title']),
                                 int(settings.read_option(settings.KEY_ANNOUNCEMENT_CHANNEL_TWITCH, 0)))
-                self.was_previously_online = is_online
+                print("Twitch: isOnline: {}, wasPreviouslyOnline: {}".format(is_online, was_previously_online))
+                was_previously_online = is_online
             except Exception as e:
                 print(e)
             if notification_sent:
+                print("Twitch: Notification sent, going for a long sleep")
                 await asyncio.sleep(settings.TWITCH_POLL_COOLDOWN_MINUTES * 60)
             else:
                 await asyncio.sleep(settings.TWITCH_POLL_RATE)
