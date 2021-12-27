@@ -22,7 +22,8 @@ class TwitchCog(commands.Cog, name="Twitch"):
         self.was_previously_online = False
         self.nextUpdateAllowedAt = 0
 
-        self.poll_thread.start()
+        if not self.poll_thread.is_running():
+            self.poll_thread.start()
 
     def cog_unload(self):
         self.poll_thread.cancel()
