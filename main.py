@@ -35,8 +35,14 @@ if os.path.isfile('custom_commands.bin'):
 async def on_ready():
     print('We have logged in as {0.user}'.format(bot))
     # bot.add_cog(PollCog(bot))
-    bot.add_cog(TwitchCog(bot))
-    bot.add_cog(YoutubeCog(bot))
+    if not bot.cogs.keys().__contains__("Twitch"):
+        print("Adding twitch cog")
+        bot.add_cog(TwitchCog(bot))
+    if not bot.cogs.keys().__contains__("Youtube"):
+        print("Adding youtube cog")
+        bot.add_cog(YoutubeCog(bot))
+
+    print("Cogs: {}".format(bot.cogs.keys()))
 
 
 @bot.event
