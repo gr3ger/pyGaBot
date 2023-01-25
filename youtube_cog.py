@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import sys
 
 import discord
@@ -89,7 +90,7 @@ class YoutubeCog(commands.Cog, name="Youtube"):
                     prev = parse(settings.read_option(settings.KEY_YOUTUBE_LAST_UPDATE))
                     for x in response["items"]:
                         upload = parse(x["snippet"]["publishedAt"])
-                        if upload > prev:
+                        if upload > prev and "upload" in x["contentDetails"]:
                             final_url = "https://www.youtube.com/watch?v={}".format(
                                 x["contentDetails"]["upload"]["videoId"])
                             await self.send_message_to_channel(
@@ -99,7 +100,7 @@ class YoutubeCog(commands.Cog, name="Youtube"):
                     settings.write_option(settings.KEY_YOUTUBE_LAST_UPDATE,
                                           response["items"][0]["snippet"]["publishedAt"])
             except Exception as e:
-                print(e)
+                logging.exception(e)
             await asyncio.sleep(settings.YOUTUBE_POLL_RATE)
 
     async def send_message_to_channel(self, string, channel_id: int):
