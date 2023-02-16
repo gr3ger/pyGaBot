@@ -1,4 +1,3 @@
-import asyncio
 import os
 import pickle
 import sys
@@ -21,9 +20,9 @@ if not exists("config.ini"):
     print("Could not find config.ini")
     exit()
 
-async_loop = asyncio.get_event_loop()
 bot = commands.Bot(command_prefix=settings.CALL_CHARACTER,
-                   intents=discord.Intents(messages=True, guilds=True, members=True, reactions=True))
+                   intents=discord.Intents(messages=True, guilds=True, members=True, reactions=True,
+                                           message_content=True))
 custom_commands = {}
 prune_messages = {}
 
@@ -37,10 +36,10 @@ async def on_ready():
     # bot.add_cog(PollCog(bot))
     if not bot.cogs.keys().__contains__("Twitch"):
         print("Adding twitch cog")
-        bot.add_cog(TwitchCog(bot))
+        await bot.add_cog(TwitchCog(bot))
     if not bot.cogs.keys().__contains__("Youtube"):
         print("Adding youtube cog")
-        bot.add_cog(YoutubeCog(bot))
+        await bot.add_cog(YoutubeCog(bot))
 
     print("Cogs: {}".format(bot.cogs.keys()))
 
@@ -131,7 +130,7 @@ async def prune(ctx):
 @bot.command()
 async def avatar(ctx):
     """Show off your avatar in current channel"""
-    await ctx.send(ctx.message.author.avatar_url)
+    await ctx.send(ctx.message.author.avatar)
 
 
 @bot.command()
