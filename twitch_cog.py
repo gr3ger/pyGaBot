@@ -129,25 +129,6 @@ class TwitchCog(commands.Cog, name="Twitch"):
         else:
             print("[{}] Waiting to be allowed to check again".format(current_time_string()))
 
-    # @tasks.loop(hours=3)
-    # async def integration_sync_thread(self):
-    #    print("todo")
-
-    @commands.command()
-    @commands.has_any_role("Mods", "Admin")
-    @commands.has_permissions(manage_guild=True)
-    @commands.bot_has_permissions(manage_guild=True)
-    async def synctwitch(self, ctx):
-        integrations = await ctx.guild.integrations()
-        print(list(filter(lambda i: i.type, integrations)))
-        twitch_integration = list(filter(lambda i: i.type == "Twitch" and i.enabled, integrations))
-        if len(twitch_integration) > 0:
-            await ctx.send("Starting Twitch sync")
-            await twitch_integration[0].sync()
-            await ctx.send("Twitch integration synced")
-        else:
-            await ctx.send("Could not find Twitch integration")
-
     async def send_message_to_channel(self, string, channel_id: int):
         print("Sending announcement to channel {}".format(channel_id))
         channel = self.bot.get_channel(channel_id)

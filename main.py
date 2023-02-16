@@ -112,15 +112,18 @@ async def prune(ctx):
     """Lists users that has no roles"""
     members = ctx.guild.members
     # I think everyone has the "everyone" roles no matter server config, so check if <= 1
-    no_roles_list = list(filter(lambda m: len(m.roles) <= 1, members))
+    no_roles_list = list(
+        filter(lambda m: len(m.roles) <= 1 or (len(m.roles) <= 2 and any(r.name == "Movienight" for r in m.roles)),
+               members))
     name_list = list(map(lambda m: m.display_name, no_roles_list))
     if len(name_list) == 0:
         await ctx.send("there are no users without roles")
     else:
         sent_message = await ctx.send(
-            "there are {} users with no role:\n{}\nShould I kick them? use the reactions below".format(len(name_list),
-                                                                                                       ", ".join(
-                                                                                                           name_list)))
+            "there are {} users with no role (Or only Movienight):\n{}\nShould I kick them? use the reactions below".format(
+                len(name_list),
+                ", ".join(
+                    name_list)))
         await sent_message.add_reaction("👍")
         await sent_message.add_reaction("👎")
         prune_messages[sent_message.id] = no_roles_list
